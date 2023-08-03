@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 
-use super::{despawn_screen, GameState};
+use super::{despawn_screen, GameState, GAME_NAME};
 
 pub struct SplashPlugin;
 
@@ -41,7 +41,7 @@ fn splash_setup(mut commands: Commands) {
     commands.spawn((
         TextBundle {
             text: Text::from_section(
-                "Whispers of Madness",
+                GAME_NAME,
                 TextStyle {
                     font_size: 180.0,
                     color: Color::DARK_GRAY,

@@ -5,6 +5,8 @@ use bevy::prelude::*;
 // use bevy_inspector_egui::prelude::*;
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
 
+pub const GAME_NAME: &str = "Nightmare Manor";
+
 // Enum that will be used as a global state for the game
 #[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States)]
 enum GameState {

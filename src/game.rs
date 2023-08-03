@@ -1,3 +1,6 @@
+use std::f32::consts::PI;
+
+use bevy::core_pipeline::clear_color::ClearColorConfig;
 use bevy::prelude::*;
 use rand::Rng;
 
@@ -8,26 +11,28 @@ pub struct GamePlugin;
 impl Plugin for GamePlugin {
     fn build(&self, app: &mut App) {
         // As this plugin is managing the game screen, it will focus on the state `GameState::Game`
-        app
-            // When entering the state, spawn everything needed for this screen
-            // .add_system(SystemSet::on_enter(GameState::Game).with_system(game_setup))
+        app.init_resource::<Insanity>()
             .add_systems(OnEnter(GameState::Game), game_setup)
-            // While in this state, run the `game` system
             .add_systems(
                 Update,
-                (movement, camera_movement, camera_flicker).run_if(in_state(GameState::Game)),
+                (movement, camera_rotation, light_flicker, update_insanity)
+                    .run_if(in_state(GameState::Game)),
             )
-            // When exiting the state, despawn everything that was spawned for this screen
             .add_systems(
                 OnExit(GameState::Game),
-                (despawn_screen::<OnGameScreen>, despawn_screen::<GameCamera>),
+                (
+                    despawn_screen::<OnGame3DScreen>,
+                    despawn_screen::<OnGame2DScreen>,
+                ),
             );
     }
 }
 
-// Tag component used to tag entities added on the splash screen
 #[derive(Component)]
-struct OnGameScreen;
+struct OnGame3DScreen;
+
+#[derive(Component)]
+struct OnGame2DScreen;
 
 #[derive(Component)]
 struct GameCamera;
@@ -36,6 +41,9 @@ struct GameCamera;
 struct Player {
     flashlight_flicker: Timer,
 }
+
+#[derive(Resource, Deref, DerefMut, Default)]
+struct Insanity(u32);
 
 fn game_setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     // spawn House
@@ -46,7 +54,6 @@ fn game_setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     },));
 
     // spawn light
-    // todo figure out lighting
     commands.spawn(DirectionalLightBundle {
         transform: Transform::from_xyz(0.0, 800.0, 0.0).looking_at(Vec3::ZERO, Vec3::Y),
         directional_light: DirectionalLight {
@@ -58,15 +65,11 @@ fn game_setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     });
 
     // spawn spotlights
-    let camera_locations = [(9.5, 0.0, -7.8), (-9.5, 0.0, -7.8)];
-    for camera_locations in camera_locations {
+    let light_locations = [(9.5, 0.0, -7.8), (-9.5, 0.0, -7.8)];
+    for light_locations in light_locations {
         commands.spawn(SpotLightBundle {
-            transform: Transform::from_xyz(
-                camera_locations.0,
-                camera_locations.1,
-                camera_locations.2,
-            )
-            .looking_to(Vec3::Y, Vec3::Z),
+            transform: Transform::from_xyz(light_locations.0, light_locations.1, light_locations.2)
+                .looking_to(Vec3::Y, Vec3::Z),
             spot_light: SpotLight {
                 color: Color::RED,
                 intensity: 1600.0,
@@ -76,8 +79,21 @@ fn game_setup(mut commands: Commands, asset_server: Res<AssetServer>) {
             ..Default::default()
         });
     }
+    commands.spawn(SpotLightBundle {
+        transform: Transform::from_xyz(0.0, 5.4, -10.0).with_rotation(
+            Quat::from_rotation_z(std::f32::consts::PI)
+                .mul_quat(Quat::from_rotation_x(std::f32::consts::PI / 2.0)),
+        ),
+        spot_light: SpotLight {
+            color: Color::TURQUOISE,
+            intensity: 1600.0,
+            range: 100.0,
+            ..Default::default()
+        },
+        ..Default::default()
+    });
 
-    // spawn camera
+    // spawn flashlight with camera
     commands
         .spawn((
             SpotLightBundle {
@@ -107,6 +123,46 @@ fn game_setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                 },
             ));
         });
+
+    commands.spawn(
+        TextBundle::from_sections([
+            TextSection::new(
+                "Insanity: ",
+                TextStyle {
+                    font_size: 60.0,
+                    color: Color::WHITE,
+                    ..Default::default()
+                },
+            ),
+            TextSection::new(
+                "0",
+                TextStyle {
+                    font_size: 60.0,
+                    color: Color::RED,
+                    ..Default::default()
+                },
+            ),
+        ])
+        .with_style(Style {
+            position_type: PositionType::Absolute,
+            top: Val::Px(5.0),
+            left: Val::Px(5.0),
+            ..Default::default()
+        }),
+    );
+
+    // spawn 2D overlay
+    commands.spawn(Camera2dBundle {
+        camera_2d: Camera2d {
+            clear_color: ClearColorConfig::None,
+            ..Default::default()
+        },
+        camera: Camera {
+            order: 1,
+            ..Default::default()
+        },
+        ..Default::default()
+    });
 }
 
 fn movement(
@@ -121,21 +177,21 @@ fn movement(
             .get(GamepadAxis::new(gamepad, GamepadAxisType::LeftStickX))
             .unwrap();
         if left_stick_x.abs() > 0.01 {
-            let forward = transform.left();
+            let forward = transform.left() * Vec3::new(1.0, 0.0, 1.0);
             // should be direction use is facing
-            transform.translation += forward * -left_stick_x * time.delta_seconds() * 4.0;
+            transform.translation += forward * -left_stick_x * time.delta_seconds() * 3.0;
         }
         let left_stick_y = axes
             .get(GamepadAxis::new(gamepad, GamepadAxisType::LeftStickY))
             .unwrap();
         if left_stick_y.abs() > 0.01 {
-            let left = transform.forward();
-            transform.translation += left * left_stick_y * time.delta_seconds() * 4.0;
+            let left = transform.forward() * Vec3::new(1.0, 0.0, 1.0);
+            transform.translation += left * left_stick_y * time.delta_seconds() * 3.0;
         }
     }
 }
 
-fn camera_movement(
+fn camera_rotation(
     time: Res<Time>,
     gamepads: Res<Gamepads>,
     axes: Res<Axis<GamepadAxis>>,
@@ -146,15 +202,21 @@ fn camera_movement(
         let right_stick_x = axes
             .get(GamepadAxis::new(gamepad, GamepadAxisType::RightStickX))
             .unwrap();
-        if right_stick_x.abs() > 0.01 {
-            transform.rotate(Quat::from_rotation_y(
-                -right_stick_x * time.delta_seconds() * 2.0,
-            ));
-        }
+        let right_stick_y = axes
+            .get(GamepadAxis::new(gamepad, GamepadAxisType::RightStickY))
+            .unwrap();
+
+        let (mut yaw, mut pitch, _) = transform.rotation.to_euler(EulerRot::YXZ);
+
+        pitch += right_stick_y * time.delta_seconds() * 2.0;
+        pitch = pitch.clamp(-PI / 8.0, PI / 8.0);
+        yaw -= right_stick_x * time.delta_seconds() * 2.0;
+        transform.rotation =
+            Quat::from_axis_angle(Vec3::Y, yaw) * Quat::from_axis_angle(Vec3::X, pitch);
     }
 }
 
-fn camera_flicker(time: Res<Time>, mut query: Query<(&mut Player, &mut SpotLight)>) {
+fn light_flicker(time: Res<Time>, mut query: Query<(&mut Player, &mut SpotLight)>) {
     let (mut player, mut light) = query.single_mut();
     player.flashlight_flicker.tick(time.delta());
     if rand::thread_rng().gen_range(0..50) == 0 {
@@ -164,4 +226,9 @@ fn camera_flicker(time: Res<Time>, mut query: Query<(&mut Player, &mut SpotLight
     if player.flashlight_flicker.finished() {
         light.intensity = 200.0;
     }
+}
+
+fn update_insanity(insanity: Res<Insanity>, mut query: Query<&mut Text>) {
+    let mut text = query.single_mut();
+    text.sections[1].value = insanity.0.to_string();
 }
