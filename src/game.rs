@@ -18,6 +18,11 @@ impl Plugin for GamePlugin {
                 (movement, camera_rotation, light_flicker, update_insanity)
                     .run_if(in_state(GameState::Game)),
             )
+            // run if in game state and player_close_to_front_door
+            .add_systems(
+                Update,
+                open_door.run_if(in_state(GameState::Game).and_then(player_close_to_front_door)),
+            )
             .add_systems(
                 OnExit(GameState::Game),
                 (
@@ -26,6 +31,11 @@ impl Plugin for GamePlugin {
                 ),
             );
     }
+}
+
+#[derive(Resource)]
+struct Animations {
+    open_door: Handle<AnimationClip>,
 }
 
 #[derive(Component)]
@@ -52,6 +62,10 @@ fn game_setup(mut commands: Commands, asset_server: Res<AssetServer>) {
         transform: Transform::from_xyz(0.0, 0.0, -10.0).looking_at(Vec3::NEG_Z, Vec3::Y),
         ..default()
     },));
+
+    commands.insert_resource(Animations {
+        open_door: asset_server.load("models/house.glb#Animation0"),
+    });
 
     // spawn light
     commands.spawn(DirectionalLightBundle {
@@ -231,4 +245,27 @@ fn light_flicker(time: Res<Time>, mut query: Query<(&mut Player, &mut SpotLight)
 fn update_insanity(insanity: Res<Insanity>, mut query: Query<&mut Text>) {
     let mut text = query.single_mut();
     text.sections[1].value = insanity.0.to_string();
+}
+
+fn open_door(
+    animations: Res<Animations>,
+    mut insanity: ResMut<Insanity>,
+    mut anim_player: Query<&mut AnimationPlayer, Added<AnimationPlayer>>,
+) {
+    for mut player in anim_player.iter_mut() {
+        insanity.0 += 1;
+        player.play(animations.open_door.clone());
+    }
+}
+
+fn player_close_to_front_door(player_query: Query<&Transform, With<Player>>) -> bool {
+    let player_transform = player_query.single();
+    if player_transform
+        .translation
+        .distance_squared(Vec3::new(0.0, 0.0, 0.0))
+        < 200.0
+    {
+        return true;
+    }
+    false
 }
