@@ -1,6 +1,7 @@
 use bevy::gltf::{Gltf, GltfMesh};
 use bevy::prelude::*;
 use bevy::{audio::VolumeLevel, core_pipeline::clear_color::ClearColorConfig};
+use bevy_atmosphere::prelude::*;
 use bevy_rapier3d::prelude::*;
 use rand::Rng;
 use std::f32::consts::PI;
@@ -12,33 +13,36 @@ pub struct GamePlugin;
 impl Plugin for GamePlugin {
     fn build(&self, app: &mut App) {
         // As this plugin is managing the game screen, it will focus on the state `GameState::Game`
-        app.add_plugins((RapierPhysicsPlugin::<NoUserData>::default(),))
-            .init_resource::<Insanity>()
-            .init_resource::<Animations>()
-            .add_systems(OnEnter(GameState::Game), game_setup)
-            .add_systems(
-                Update,
-                (
-                    spawn_house,
-                    movement,
-                    camera_rotation,
-                    light_flicker,
-                    update_insanity,
-                )
-                    .run_if(in_state(GameState::Game)),
+        app.add_plugins((
+            RapierPhysicsPlugin::<NoUserData>::default(),
+            AtmospherePlugin,
+        ))
+        .init_resource::<Insanity>()
+        .init_resource::<Animations>()
+        .add_systems(OnEnter(GameState::Game), game_setup)
+        .add_systems(
+            Update,
+            (
+                spawn_house,
+                movement,
+                camera_rotation,
+                light_flicker,
+                update_insanity,
             )
-            // run if in game state and player_close_to_front_door
-            .add_systems(
-                Update,
-                open_door.run_if(in_state(GameState::Game).and_then(player_close_to_front_door)),
-            )
-            .add_systems(
-                OnExit(GameState::Game),
-                (
-                    despawn_screen::<OnGame3DScreen>,
-                    despawn_screen::<OnGame2DScreen>,
-                ),
-            );
+                .run_if(in_state(GameState::Game)),
+        )
+        // run if in game state and player_close_to_front_door
+        .add_systems(
+            Update,
+            open_door.run_if(in_state(GameState::Game).and_then(player_close_to_front_door)),
+        )
+        .add_systems(
+            OnExit(GameState::Game),
+            (
+                despawn_screen::<OnGame3DScreen>,
+                despawn_screen::<OnGame2DScreen>,
+            ),
+        );
     }
 }
 
@@ -97,6 +101,11 @@ fn game_setup(mut commands: Commands, asset_server: Res<AssetServer>) {
         KnockingWoodEmitter,
     ));
 
+    commands.insert_resource(AtmosphereModel::new(Nishita {
+        sun_position: Vec3::new(0., 0., -1.),
+        ..default()
+    }));
+
     // spawn flashlight with camera
     commands
         .spawn((
@@ -122,6 +131,7 @@ fn game_setup(mut commands: Commands, asset_server: Res<AssetServer>) {
         .with_children(|parent| {
             parent.spawn((
                 Camera3dBundle::default(),
+                AtmosphereCamera::default(),
                 FogSettings {
                     color: Color::WHITE,
                     falloff: FogFalloff::Exponential { density: 1e-3 },
@@ -302,7 +312,7 @@ fn player_close_to_front_door(player_query: Query<&Transform, With<Player>>) -> 
     let player_transform = player_query.single();
     if player_transform
         .translation
-        .distance_squared(Vec3::new(4.0, 0.0, 0.0))
+        .distance_squared(Vec3::new(0.0, 0.0, 4.0))
         < 50.0
     {
         return true;
