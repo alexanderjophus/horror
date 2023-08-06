@@ -1,7 +1,7 @@
 use bevy::gltf::{Gltf, GltfMesh};
 use bevy::prelude::*;
 use bevy::{audio::VolumeLevel, core_pipeline::clear_color::ClearColorConfig};
-use bevy_xpbd_3d::prelude::*;
+use bevy_rapier3d::prelude::*;
 use rand::Rng;
 use std::f32::consts::PI;
 
@@ -12,34 +12,36 @@ pub struct GamePlugin;
 impl Plugin for GamePlugin {
     fn build(&self, app: &mut App) {
         // As this plugin is managing the game screen, it will focus on the state `GameState::Game`
-        app.add_plugins(PhysicsPlugins::default())
-            .init_resource::<Insanity>()
-            .init_resource::<Animations>()
-            .add_systems(OnEnter(GameState::Game), game_setup)
-            .add_systems(
-                Update,
-                (
-                    spawn_house,
-                    movement,
-                    camera_rotation,
-                    light_flicker,
-                    update_insanity,
-                    collision_detection,
-                )
-                    .run_if(in_state(GameState::Game)),
+        app.add_plugins((
+            RapierPhysicsPlugin::<NoUserData>::default(),
+            RapierDebugRenderPlugin::default(),
+        ))
+        .init_resource::<Insanity>()
+        .init_resource::<Animations>()
+        .add_systems(OnEnter(GameState::Game), game_setup)
+        .add_systems(
+            Update,
+            (
+                spawn_house,
+                movement,
+                camera_rotation,
+                light_flicker,
+                update_insanity,
             )
-            // run if in game state and player_close_to_front_door
-            .add_systems(
-                Update,
-                open_door.run_if(in_state(GameState::Game).and_then(player_close_to_front_door)),
-            )
-            .add_systems(
-                OnExit(GameState::Game),
-                (
-                    despawn_screen::<OnGame3DScreen>,
-                    despawn_screen::<OnGame2DScreen>,
-                ),
-            );
+                .run_if(in_state(GameState::Game)),
+        )
+        // run if in game state and player_close_to_front_door
+        .add_systems(
+            Update,
+            open_door.run_if(in_state(GameState::Game).and_then(player_close_to_front_door)),
+        )
+        .add_systems(
+            OnExit(GameState::Game),
+            (
+                despawn_screen::<OnGame3DScreen>,
+                despawn_screen::<OnGame2DScreen>,
+            ),
+        );
     }
 }
 
@@ -90,9 +92,9 @@ fn game_setup(mut commands: Commands, asset_server: Res<AssetServer>) {
             source: asset_server.load("sounds/knocking_wood.ogg"),
             settings: PlaybackSettings::LOOP,
             spatial: SpatialSettings::new(
-                Transform::from_xyz(0.0, 1.6, -20.0),
+                Transform::from_xyz(0.0, 1.6, -10.0),
                 4.0,
-                Vec3::new(0.0, 2.0, -10.0),
+                Vec3::new(0.0, 2.0, 5.0),
             ),
         },
         KnockingWoodEmitter,
@@ -102,7 +104,7 @@ fn game_setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands
         .spawn((
             SpotLightBundle {
-                transform: Transform::from_xyz(0.0, 1.6, 20.0).looking_at(Vec3::Y * 1.6, Vec3::Y),
+                transform: Transform::from_xyz(0.0, 1.6, -10.0).looking_at(Vec3::Y * 1.6, Vec3::Y),
                 spot_light: SpotLight {
                     color: Color::rgb(0.8, 0.8, 0.8),
                     intensity: 200.0,
@@ -117,8 +119,9 @@ fn game_setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                 flashlight_flicker: Timer::from_seconds(0.1, TimerMode::Once),
                 ..Default::default()
             },
-            // RigidBody::Static,
-            // Collider::ball(0.1),
+            KinematicCharacterController {
+                ..Default::default()
+            },
         ))
         .with_children(|parent| {
             parent.spawn((
@@ -186,12 +189,15 @@ fn spawn_house(
             commands.spawn((
                 SceneBundle {
                     scene: gltf.scenes[0].clone(),
-                    transform: Transform::from_xyz(0.0, 0.0, -10.0).looking_at(Vec3::Z, Vec3::Y),
+                    transform: Transform::from_xyz(0.0, 0.0, 0.0).looking_at(Vec3::Z, Vec3::Y),
                     ..Default::default()
                 },
-                RigidBody::Static,
-                Collider::convex_decomposition_from_bevy_mesh(assets_mesh.get(mesh).unwrap())
-                    .unwrap(),
+                RigidBody::Fixed,
+                Collider::from_bevy_mesh(
+                    assets_mesh.get(mesh).unwrap(),
+                    &ComputedColliderShape::TriMesh,
+                )
+                .unwrap(),
             ));
 
             commands.insert_resource(Animations {
@@ -307,13 +313,4 @@ fn player_close_to_front_door(player_query: Query<&Transform, With<Player>>) -> 
         return true;
     }
     false
-}
-
-fn collision_detection(mut collision_event_reader: EventReader<Collision>) {
-    for Collision(contact) in collision_event_reader.iter() {
-        println!(
-            "{:?} and {:?} are colliding",
-            contact.entity1, contact.entity2
-        );
-    }
 }

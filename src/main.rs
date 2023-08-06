@@ -2,7 +2,6 @@ mod game;
 mod splash;
 
 use bevy::prelude::*;
-// use bevy_inspector_egui::prelude::*;
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
 
 pub const GAME_NAME: &str = "Nightmare Manor";
@@ -19,11 +18,9 @@ fn main() {
     App::new()
         .add_plugins((
             DefaultPlugins.set(ImagePlugin::default_nearest()),
-            // .disable::<LogPlugin>(),
             WorldInspectorPlugin::new(),
         ))
-        // .add_plugins(DiagnosticExplorerAgentPlugin)
-        // Declare the game state, and set its startup value
+        // Declare the game state
         .add_state::<GameState>()
         // Adds the plugins for each state
         .add_plugins((splash::SplashPlugin, game::GamePlugin))
