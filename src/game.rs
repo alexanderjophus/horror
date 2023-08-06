@@ -117,7 +117,6 @@ fn game_setup(mut commands: Commands, asset_server: Res<AssetServer>) {
             },
             Player {
                 flashlight_flicker: Timer::from_seconds(0.1, TimerMode::Once),
-                ..Default::default()
             },
             KinematicCharacterController {
                 ..Default::default()
@@ -165,7 +164,6 @@ fn game_setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.spawn(Camera2dBundle {
         camera_2d: Camera2d {
             clear_color: ClearColorConfig::None,
-            ..Default::default()
         },
         camera: Camera {
             order: 1,
@@ -183,7 +181,7 @@ fn spawn_house(
     assets_gltfmesh: Res<Assets<GltfMesh>>,
 ) {
     assets.0.retain(|asset| {
-        if let Some(gltf) = assets_gltf.get(&asset) {
+        if let Some(gltf) = assets_gltf.get(asset) {
             let boarding = assets_gltfmesh.get(&gltf.named_meshes["boarding"]).unwrap();
             let mesh = &boarding.primitives[0].mesh.clone();
             commands.spawn((
