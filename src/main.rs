@@ -1,8 +1,9 @@
+#[cfg(feature = "debug")]
+mod debug;
 mod game;
 mod splash;
 
 use bevy::prelude::*;
-use bevy_inspector_egui::quick::WorldInspectorPlugin;
 
 pub const GAME_NAME: &str = "Nightmare Manor";
 
@@ -16,14 +17,16 @@ enum GameState {
 
 fn main() {
     App::new()
-        .add_plugins((
-            DefaultPlugins.set(ImagePlugin::default_nearest()),
-            WorldInspectorPlugin::new(),
-        ))
+        .add_plugins((DefaultPlugins.set(ImagePlugin::default_nearest()),))
         // Declare the game state
         .add_state::<GameState>()
         // Adds the plugins for each state
-        .add_plugins((splash::SplashPlugin, game::GamePlugin))
+        .add_plugins((
+            splash::SplashPlugin,
+            game::GamePlugin,
+            #[cfg(feature = "debug")]
+            debug::DebugPlugin,
+        ))
         .run();
 }
 

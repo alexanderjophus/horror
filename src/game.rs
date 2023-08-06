@@ -12,36 +12,33 @@ pub struct GamePlugin;
 impl Plugin for GamePlugin {
     fn build(&self, app: &mut App) {
         // As this plugin is managing the game screen, it will focus on the state `GameState::Game`
-        app.add_plugins((
-            RapierPhysicsPlugin::<NoUserData>::default(),
-            RapierDebugRenderPlugin::default(),
-        ))
-        .init_resource::<Insanity>()
-        .init_resource::<Animations>()
-        .add_systems(OnEnter(GameState::Game), game_setup)
-        .add_systems(
-            Update,
-            (
-                spawn_house,
-                movement,
-                camera_rotation,
-                light_flicker,
-                update_insanity,
+        app.add_plugins((RapierPhysicsPlugin::<NoUserData>::default(),))
+            .init_resource::<Insanity>()
+            .init_resource::<Animations>()
+            .add_systems(OnEnter(GameState::Game), game_setup)
+            .add_systems(
+                Update,
+                (
+                    spawn_house,
+                    movement,
+                    camera_rotation,
+                    light_flicker,
+                    update_insanity,
+                )
+                    .run_if(in_state(GameState::Game)),
             )
-                .run_if(in_state(GameState::Game)),
-        )
-        // run if in game state and player_close_to_front_door
-        .add_systems(
-            Update,
-            open_door.run_if(in_state(GameState::Game).and_then(player_close_to_front_door)),
-        )
-        .add_systems(
-            OnExit(GameState::Game),
-            (
-                despawn_screen::<OnGame3DScreen>,
-                despawn_screen::<OnGame2DScreen>,
-            ),
-        );
+            // run if in game state and player_close_to_front_door
+            .add_systems(
+                Update,
+                open_door.run_if(in_state(GameState::Game).and_then(player_close_to_front_door)),
+            )
+            .add_systems(
+                OnExit(GameState::Game),
+                (
+                    despawn_screen::<OnGame3DScreen>,
+                    despawn_screen::<OnGame2DScreen>,
+                ),
+            );
     }
 }
 
