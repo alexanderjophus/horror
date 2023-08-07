@@ -80,7 +80,7 @@ struct Player {
 struct KnockingWoodEmitter;
 
 fn game_setup(mut commands: Commands, asset_server: Res<AssetServer>) {
-    // spawn House
+    // load House
     let gltf = asset_server.load("models/house.glb");
     commands.insert_resource(LoadingAssets(vec![gltf.clone()]));
 
@@ -110,7 +110,7 @@ fn game_setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands
         .spawn((
             SpotLightBundle {
-                transform: Transform::from_xyz(0.0, 1.6, -10.0).looking_at(Vec3::Y * 1.6, Vec3::Y),
+                transform: Transform::from_xyz(0.0, 1.4, -10.0).looking_at(Vec3::Y * 1.6, Vec3::Y),
                 spot_light: SpotLight {
                     color: Color::rgb(0.8, 0.8, 0.8),
                     intensity: 200.0,
@@ -124,17 +124,17 @@ fn game_setup(mut commands: Commands, asset_server: Res<AssetServer>) {
             Player {
                 flashlight_flicker: Timer::from_seconds(0.1, TimerMode::Once),
             },
-            KinematicCharacterController {
-                ..Default::default()
-            },
+            RigidBody::Fixed,
+            Collider::capsule_y(0.3, 0.2),
+            KinematicCharacterController::default(),
         ))
         .with_children(|parent| {
             parent.spawn((
                 Camera3dBundle::default(),
                 AtmosphereCamera::default(),
                 FogSettings {
-                    color: Color::WHITE,
-                    falloff: FogFalloff::Exponential { density: 1e-3 },
+                    color: Color::rgba(0.05, 0.05, 0.05, 1.0),
+                    falloff: FogFalloff::Exponential { density: 0.15 },
                     ..Default::default()
                 },
             ));
@@ -218,30 +218,38 @@ fn movement(
     time: Res<Time>,
     gamepads: Res<Gamepads>,
     axes: Res<Axis<GamepadAxis>>,
-    mut query: Query<&mut Transform, (With<Player>, Without<KnockingWoodEmitter>)>,
+    mut query: Query<&mut KinematicCharacterController>,
+    transform_query: Query<&Transform, With<Player>>,
     mut knocking_wood_emitter: Query<
         &mut SpatialAudioSink,
-        (With<KnockingWoodEmitter>, Without<Player>),
+        (
+            With<KnockingWoodEmitter>,
+            Without<KinematicCharacterController>,
+        ),
     >,
 ) {
-    let mut transform = query.single_mut();
-    for gamepad in gamepads.iter() {
-        let left_stick_x = axes
-            .get(GamepadAxis::new(gamepad, GamepadAxisType::LeftStickX))
-            .unwrap();
-        if left_stick_x.abs() > 0.01 {
-            let forward = transform.left() * Vec3::new(1.0, 0.0, 1.0);
-            transform.translation += forward * -left_stick_x * time.delta_seconds() * 3.0;
-        }
-        let left_stick_y = axes
-            .get(GamepadAxis::new(gamepad, GamepadAxisType::LeftStickY))
-            .unwrap();
-        if left_stick_y.abs() > 0.01 {
-            let left = transform.forward() * Vec3::new(1.0, 0.0, 1.0);
-            transform.translation += left * left_stick_y * time.delta_seconds() * 3.0;
-        }
-        for emitter_transform in knocking_wood_emitter.iter_mut() {
-            emitter_transform.set_listener_position(*transform, 4.0);
+    for mut controller in query.iter_mut() {
+        let transform = transform_query.single();
+        for gamepad in gamepads.iter() {
+            let mut translation = Vec3::ZERO;
+            let left_stick_x = axes
+                .get(GamepadAxis::new(gamepad, GamepadAxisType::LeftStickX))
+                .unwrap();
+            if left_stick_x.abs() > 0.01 {
+                let forward = transform.left() * Vec3::new(1.0, 0.0, 1.0);
+                translation += forward * -left_stick_x * time.delta_seconds() * 3.0;
+            }
+            let left_stick_y = axes
+                .get(GamepadAxis::new(gamepad, GamepadAxisType::LeftStickY))
+                .unwrap();
+            if left_stick_y.abs() > 0.01 {
+                let left = transform.forward() * Vec3::new(1.0, 0.0, 1.0);
+                translation += left * left_stick_y * time.delta_seconds() * 3.0;
+            }
+            controller.translation = Some(translation);
+            for emitter_transform in knocking_wood_emitter.iter_mut() {
+                emitter_transform.set_listener_position(*transform, 4.0);
+            }
         }
     }
 }
