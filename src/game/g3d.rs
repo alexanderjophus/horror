@@ -11,7 +11,8 @@ pub struct G3dPlugin;
 
 impl Plugin for G3dPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(OnEnter(GameState::Game), setup)
+        app.add_plugins(RapierPhysicsPlugin::<NoUserData>::default())
+            .add_systems(OnEnter(GameState::Game), setup)
             .add_systems(
                 Update,
                 (movement, camera_rotation, light_flicker, spawn_house)
