@@ -8,6 +8,8 @@ use std::f32::consts::PI;
 
 use super::{despawn_screen, GameState};
 
+const PLAYER_INIT_LOCATION: Vec3 = Vec3::new(0.0, 1.4, -10.0);
+
 pub struct GamePlugin;
 
 impl Plugin for GamePlugin {
@@ -93,12 +95,13 @@ fn game_setup(mut commands: Commands, asset_server: Res<AssetServer>) {
             source: asset_server.load("sounds/knocking_wood.ogg"),
             settings: PlaybackSettings::LOOP,
             spatial: SpatialSettings::new(
-                Transform::from_xyz(0.0, 1.6, -10.0),
+                Transform::from_translation(PLAYER_INIT_LOCATION),
                 4.0,
                 Vec3::new(0.0, 2.0, 5.0),
             ),
         },
         KnockingWoodEmitter,
+        OnGame3DScreen,
     ));
 
     commands.insert_resource(AtmosphereModel::new(Nishita {
@@ -110,7 +113,8 @@ fn game_setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands
         .spawn((
             SpotLightBundle {
-                transform: Transform::from_xyz(0.0, 1.4, -10.0).looking_at(Vec3::Y * 1.6, Vec3::Y),
+                transform: Transform::from_translation(PLAYER_INIT_LOCATION)
+                    .looking_at(Vec3::Y * PLAYER_INIT_LOCATION.y, Vec3::Y),
                 spot_light: SpotLight {
                     color: Color::rgb(0.8, 0.8, 0.8),
                     intensity: 200.0,
@@ -127,6 +131,7 @@ fn game_setup(mut commands: Commands, asset_server: Res<AssetServer>) {
             RigidBody::Fixed,
             Collider::capsule_y(0.3, 0.2),
             KinematicCharacterController::default(),
+            OnGame3DScreen,
         ))
         .with_children(|parent| {
             parent.spawn((
@@ -140,7 +145,7 @@ fn game_setup(mut commands: Commands, asset_server: Res<AssetServer>) {
             ));
         });
 
-    commands.spawn(
+    commands.spawn((
         TextBundle::from_sections([
             TextSection::new(
                 "Insanity: ",
@@ -165,19 +170,23 @@ fn game_setup(mut commands: Commands, asset_server: Res<AssetServer>) {
             left: Val::Px(5.0),
             ..Default::default()
         }),
-    );
+        OnGame2DScreen,
+    ));
 
     // spawn 2D overlay
-    commands.spawn(Camera2dBundle {
-        camera_2d: Camera2d {
-            clear_color: ClearColorConfig::None,
-        },
-        camera: Camera {
-            order: 1,
+    commands.spawn((
+        Camera2dBundle {
+            camera_2d: Camera2d {
+                clear_color: ClearColorConfig::None,
+            },
+            camera: Camera {
+                order: 1,
+                ..Default::default()
+            },
             ..Default::default()
         },
-        ..Default::default()
-    });
+        OnGame2DScreen,
+    ));
 }
 
 fn spawn_house(
@@ -203,6 +212,7 @@ fn spawn_house(
                     &ComputedColliderShape::TriMesh,
                 )
                 .unwrap(),
+                OnGame3DScreen,
             ));
 
             commands.insert_resource(Animations {
