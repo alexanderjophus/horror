@@ -29,25 +29,25 @@ impl Plugin for G3dPlugin {
 const PLAYER_INIT_LOCATION: Vec3 = Vec3::new(0.0, 1.4, -10.0);
 
 #[derive(Component)]
-pub(crate) struct OnGame3DScreen;
+struct OnGame3DScreen;
 
 #[derive(Resource)]
-pub(crate) struct LoadingAssets(Vec<Handle<Gltf>>);
+struct LoadingAssets(Vec<Handle<Gltf>>);
 
 #[derive(Resource, Default)]
-pub(crate) struct Animations {
+struct Animations {
     open_door: Handle<AnimationClip>,
 }
 
 #[derive(Resource)]
-pub(crate) struct Sounds {
+struct Sounds {
     door_open: Handle<AudioSource>,
 }
 
 #[derive(Component)]
-pub(crate) struct KnockingWoodEmitter;
+struct KnockingWoodEmitter;
 
-pub(crate) fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
+fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     let gltf = asset_server.load("models/house.glb");
     commands.insert_resource(LoadingAssets(vec![gltf.clone()]));
 
@@ -111,7 +111,7 @@ pub(crate) fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
         });
 }
 
-pub(crate) fn spawn_house(
+fn spawn_house(
     mut commands: Commands,
     mut assets: ResMut<LoadingAssets>,
     assets_mesh: Res<Assets<Mesh>>,
@@ -146,7 +146,7 @@ pub(crate) fn spawn_house(
     })
 }
 
-pub(crate) fn movement(
+fn movement(
     time: Res<Time>,
     gamepads: Res<Gamepads>,
     axes: Res<Axis<GamepadAxis>>,
@@ -186,7 +186,7 @@ pub(crate) fn movement(
     }
 }
 
-pub(crate) fn camera_rotation(
+fn camera_rotation(
     time: Res<Time>,
     gamepads: Res<Gamepads>,
     axes: Res<Axis<GamepadAxis>>,
@@ -211,7 +211,7 @@ pub(crate) fn camera_rotation(
     }
 }
 
-pub(crate) fn light_flicker(time: Res<Time>, mut query: Query<(&mut Player, &mut SpotLight)>) {
+fn light_flicker(time: Res<Time>, mut query: Query<(&mut Player, &mut SpotLight)>) {
     let (mut player, mut light) = query.single_mut();
     player.flashlight_flicker.tick(time.delta());
     if rand::thread_rng().gen_range(0..50) == 0 {
@@ -223,7 +223,7 @@ pub(crate) fn light_flicker(time: Res<Time>, mut query: Query<(&mut Player, &mut
     }
 }
 
-pub(crate) fn open_door(
+fn open_door(
     mut commands: Commands,
     animations: Res<Animations>,
     sounds: Res<Sounds>,
@@ -243,7 +243,7 @@ pub(crate) fn open_door(
     }
 }
 
-pub(crate) fn player_close_to_front_door(player_query: Query<&Transform, With<Player>>) -> bool {
+fn player_close_to_front_door(player_query: Query<&Transform, With<Player>>) -> bool {
     let player_transform = player_query.single();
     if player_transform
         .translation

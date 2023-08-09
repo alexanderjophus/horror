@@ -13,9 +13,9 @@ impl Plugin for G2dPlugin {
 }
 
 #[derive(Component)]
-pub(crate) struct OnGame2DScreen;
+struct OnGame2DScreen;
 
-pub(crate) fn setup(mut commands: Commands) {
+fn setup(mut commands: Commands) {
     commands.spawn((
         TextBundle::from_sections([
             TextSection::new(
@@ -60,7 +60,7 @@ pub(crate) fn setup(mut commands: Commands) {
     ));
 }
 
-pub(crate) fn update_insanity(insanity: Res<Insanity>, mut query: Query<&mut Text>) {
+fn update_insanity(insanity: Res<Insanity>, mut query: Query<&mut Text>) {
     let mut text = query.single_mut();
     text.sections[1].value = insanity.0.to_string();
 }

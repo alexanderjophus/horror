@@ -7,10 +7,10 @@ use super::{despawn_screen, GameState};
 use bevy::prelude::*;
 
 #[derive(Resource, Deref, DerefMut, Default)]
-pub(crate) struct Insanity(u32);
+pub(super) struct Insanity(u32);
 
 #[derive(Component, Default)]
-pub(crate) struct Player {
+pub(super) struct Player {
     flashlight_flicker: Timer,
 }
 
