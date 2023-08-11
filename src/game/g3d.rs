@@ -4,6 +4,7 @@ use bevy::gltf::{Gltf, GltfMesh};
 use bevy::prelude::*;
 use bevy_atmosphere::prelude::*;
 use bevy_rapier3d::prelude::*;
+use leafwing_input_manager::prelude::*;
 use rand::Rng;
 use std::f32::consts::PI;
 
@@ -11,18 +12,21 @@ pub struct G3dPlugin;
 
 impl Plugin for G3dPlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugins(RapierPhysicsPlugin::<NoUserData>::default())
-            .add_systems(OnEnter(GameState::Game), setup)
-            .add_systems(
-                Update,
-                (movement, camera_rotation, light_flicker, spawn_house)
-                    .run_if(in_state(GameState::Game)),
-            )
-            .add_systems(
-                Update,
-                open_door.run_if(in_state(GameState::Game).and_then(player_close_to_front_door)),
-            )
-            .add_systems(OnExit(GameState::Game), (despawn_screen::<OnGame3DScreen>,));
+        app.add_plugins((
+            InputManagerPlugin::<Action>::default(),
+            RapierPhysicsPlugin::<NoUserData>::default(),
+        ))
+        .add_systems(OnEnter(GameState::Game), setup)
+        .add_systems(
+            Update,
+            (movement, camera_rotation, light_flicker, spawn_house)
+                .run_if(in_state(GameState::Game)),
+        )
+        .add_systems(
+            Update,
+            open_door.run_if(in_state(GameState::Game).and_then(player_close_to_front_door)),
+        )
+        .add_systems(OnExit(GameState::Game), (despawn_screen::<OnGame3DScreen>,));
     }
 }
 
@@ -46,6 +50,13 @@ struct Sounds {
 
 #[derive(Component)]
 struct KnockingWoodEmitter;
+
+// This is the list of "things in the game I want to be able to do based on input"
+#[derive(Actionlike, PartialEq, Eq, Clone, Copy, Hash, Debug, Reflect)]
+enum Action {
+    Move,
+    Look,
+}
 
 fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     let gltf = asset_server.load("models/house.glb");
@@ -96,6 +107,15 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
             RigidBody::Fixed,
             Collider::capsule_y(0.3, 0.2),
             KinematicCharacterController::default(),
+            InputManagerBundle::<Action> {
+                // Stores "which actions are currently pressed"
+                action_state: ActionState::default(),
+                // Describes how to convert from player inputs into those actions
+                input_map: InputMap::new([
+                    (DualAxis::left_stick(), Action::Move),
+                    (DualAxis::right_stick(), Action::Look),
+                ]),
+            },
             OnGame3DScreen,
         ))
         .with_children(|parent| {
@@ -148,10 +168,14 @@ fn spawn_house(
 
 fn movement(
     time: Res<Time>,
-    gamepads: Res<Gamepads>,
-    axes: Res<Axis<GamepadAxis>>,
-    mut query: Query<&mut KinematicCharacterController>,
-    transform_query: Query<&Transform, With<Player>>,
+    mut query: Query<
+        (
+            &mut KinematicCharacterController,
+            &Transform,
+            &ActionState<Action>,
+        ),
+        With<Player>,
+    >,
     mut knocking_wood_emitter: Query<
         &mut SpatialAudioSink,
         (
@@ -160,24 +184,14 @@ fn movement(
         ),
     >,
 ) {
-    for mut controller in query.iter_mut() {
-        let transform = transform_query.single();
-        for gamepad in gamepads.iter() {
+    for (mut controller, transform, action_state) in query.iter_mut() {
+        if action_state.pressed(Action::Move) {
             let mut translation = Vec3::ZERO;
-            let left_stick_x = axes
-                .get(GamepadAxis::new(gamepad, GamepadAxisType::LeftStickX))
-                .unwrap();
-            if left_stick_x.abs() > 0.01 {
-                let forward = transform.left() * Vec3::new(1.0, 0.0, 1.0);
-                translation += forward * -left_stick_x * time.delta_seconds() * 3.0;
-            }
-            let left_stick_y = axes
-                .get(GamepadAxis::new(gamepad, GamepadAxisType::LeftStickY))
-                .unwrap();
-            if left_stick_y.abs() > 0.01 {
-                let left = transform.forward() * Vec3::new(1.0, 0.0, 1.0);
-                translation += left * left_stick_y * time.delta_seconds() * 3.0;
-            }
+            let axis_pair = action_state.clamped_axis_pair(Action::Move).unwrap();
+            let forward = transform.left() * Vec3::new(1.0, 0.0, 1.0);
+            let left = transform.forward() * Vec3::new(1.0, 0.0, 1.0);
+            translation += forward * -axis_pair.x() * time.delta_seconds() * 3.0;
+            translation += left * axis_pair.y() * time.delta_seconds() * 3.0;
 
             controller.translation = Some(translation);
             for emitter_transform in knocking_wood_emitter.iter_mut() {
@@ -189,26 +203,19 @@ fn movement(
 
 fn camera_rotation(
     time: Res<Time>,
-    gamepads: Res<Gamepads>,
-    axes: Res<Axis<GamepadAxis>>,
-    mut query: Query<&mut Transform, With<Player>>,
+    mut query: Query<(&mut Transform, &ActionState<Action>), With<Player>>,
 ) {
-    let mut transform = query.single_mut();
-    for gamepad in gamepads.iter() {
-        let right_stick_x = axes
-            .get(GamepadAxis::new(gamepad, GamepadAxisType::RightStickX))
-            .unwrap();
-        let right_stick_y = axes
-            .get(GamepadAxis::new(gamepad, GamepadAxisType::RightStickY))
-            .unwrap();
+    for (mut transform, action_state) in query.iter_mut() {
+        if action_state.pressed(Action::Look) {
+            let axis_pair = action_state.clamped_axis_pair(Action::Look).unwrap();
+            let (mut yaw, mut pitch, _) = transform.rotation.to_euler(EulerRot::YXZ);
 
-        let (mut yaw, mut pitch, _) = transform.rotation.to_euler(EulerRot::YXZ);
-
-        pitch += right_stick_y * time.delta_seconds() * 2.0;
-        pitch = pitch.clamp(-PI / 8.0, PI / 8.0);
-        yaw -= right_stick_x * time.delta_seconds() * 2.0;
-        transform.rotation =
-            Quat::from_axis_angle(Vec3::Y, yaw) * Quat::from_axis_angle(Vec3::X, pitch);
+            pitch += axis_pair.y() * time.delta_seconds() * 2.0;
+            pitch = pitch.clamp(-PI / 8.0, PI / 8.0);
+            yaw -= axis_pair.x() * time.delta_seconds() * 2.0;
+            transform.rotation =
+                Quat::from_axis_angle(Vec3::Y, yaw) * Quat::from_axis_angle(Vec3::X, pitch);
+        }
     }
 }
 
