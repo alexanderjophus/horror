@@ -335,7 +335,7 @@ fn setup(mut commands: Commands) {
             },
             ..Default::default()
         },
-        BlurPostProcessSettings { intensity: 0.02 },
+        BlurPostProcessSettings { intensity: 0.0 },
         OnPPScreen,
     ));
 }

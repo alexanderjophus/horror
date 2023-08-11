@@ -1,8 +1,8 @@
+mod blur;
 #[cfg(feature = "debug")]
 mod debug3d;
 mod g2d;
 mod g3d;
-mod pp;
 
 use super::{despawn_screen, GameState};
 use bevy::prelude::*;
@@ -26,7 +26,7 @@ impl Plugin for GamePlugin {
             .add_plugins((
                 g2d::G2dPlugin,
                 g3d::G3dPlugin,
-                pp::BlurPlugin,
+                blur::BlurPlugin,
                 #[cfg(feature = "debug")]
                 debug3d::Debug3DPlugin,
             ))
@@ -35,6 +35,7 @@ impl Plugin for GamePlugin {
     }
 }
 
+// todo remove this once I figure out a mechanic to increase it more
 fn setup(mut commands: Commands) {
     commands.spawn((InsanityTimer(Timer::from_seconds(
         10.0,

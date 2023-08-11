@@ -1,5 +1,4 @@
 use super::{despawn_screen, GameState, Insanity, Player};
-use bevy::audio::VolumeLevel;
 use bevy::gltf::{Gltf, GltfMesh};
 use bevy::prelude::*;
 use bevy_atmosphere::prelude::*;
@@ -19,8 +18,11 @@ impl Plugin for G3dPlugin {
         .add_systems(OnEnter(GameState::Game), setup)
         .add_systems(
             Update,
-            (movement, camera_rotation, light_flicker, spawn_house)
-                .run_if(in_state(GameState::Game)),
+            (camera_rotation, light_flicker, spawn_house).run_if(in_state(GameState::Game)),
+        )
+        .add_systems(
+            Update,
+            movement.run_if(in_state(GameState::Game).and_then(first_audio_finished)),
         )
         .add_systems(
             Update,
@@ -46,10 +48,14 @@ struct Animations {
 #[derive(Resource)]
 struct Sounds {
     door_open: Handle<AudioSource>,
+    knocking_wood: Handle<AudioSource>,
 }
 
 #[derive(Component)]
 struct KnockingWoodEmitter;
+
+#[derive(Component)]
+struct Intro;
 
 // This is the list of "things in the game I want to be able to do based on input"
 #[derive(Actionlike, PartialEq, Eq, Clone, Copy, Hash, Debug, Reflect)]
@@ -64,26 +70,21 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
 
     commands.insert_resource(Sounds {
         door_open: asset_server.load("sounds/door_open.ogg"),
+        knocking_wood: asset_server.load("sounds/knocking_wood.ogg"),
     });
-
-    commands.spawn((
-        SpatialAudioBundle {
-            source: asset_server.load("sounds/knocking_wood.ogg"),
-            settings: PlaybackSettings::LOOP,
-            spatial: SpatialSettings::new(
-                Transform::from_translation(PLAYER_INIT_LOCATION),
-                4.0,
-                Vec3::new(0.0, 2.0, 5.0),
-            ),
-        },
-        KnockingWoodEmitter,
-        OnGame3DScreen,
-    ));
 
     commands.insert_resource(AtmosphereModel::new(Nishita {
         sun_position: Vec3::new(0., 0., -1.),
         ..default()
     }));
+
+    commands.spawn((
+        AudioBundle {
+            source: asset_server.load("sounds/haunting_piano.ogg"),
+            settings: PlaybackSettings::DESPAWN,
+        },
+        Intro,
+    ));
 
     // spawn flashlight with camera
     commands
@@ -133,6 +134,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
 
 fn spawn_house(
     mut commands: Commands,
+    sounds: Res<Sounds>,
     mut assets: ResMut<LoadingAssets>,
     assets_mesh: Res<Assets<Mesh>>,
     assets_gltf: Res<Assets<Gltf>>,
@@ -160,6 +162,20 @@ fn spawn_house(
             commands.insert_resource(Animations {
                 open_door: gltf.animations[0].clone(),
             });
+
+            commands.spawn((
+                SpatialAudioBundle {
+                    source: sounds.knocking_wood.clone(),
+                    settings: PlaybackSettings::LOOP,
+                    spatial: SpatialSettings::new(
+                        Transform::from_translation(PLAYER_INIT_LOCATION),
+                        4.0,
+                        Vec3::new(-10.0, 2.0, 0.0),
+                    ),
+                },
+                KnockingWoodEmitter,
+                OnGame3DScreen,
+            ));
             return false;
         }
         true
@@ -240,13 +256,18 @@ fn open_door(
 ) {
     for mut player in anim_player.iter_mut() {
         insanity.0 += 1;
-        commands.spawn(AudioBundle {
-            source: sounds.door_open.clone(),
-            settings: PlaybackSettings {
-                volume: bevy::audio::Volume::Relative(VolumeLevel::new(0.5)),
-                ..Default::default()
+        commands.spawn((
+            SpatialAudioBundle {
+                source: sounds.door_open.clone(),
+                settings: PlaybackSettings::ONCE,
+                spatial: SpatialSettings::new(
+                    Transform::from_translation(PLAYER_INIT_LOCATION),
+                    4.0,
+                    Vec3::new(0.0, 0.0, 2.7),
+                ),
             },
-        });
+            OnGame3DScreen,
+        ));
         player.play(animations.open_door.clone());
     }
 }
@@ -255,10 +276,17 @@ fn player_close_to_front_door(player_query: Query<&Transform, With<Player>>) -> 
     let player_transform = player_query.single();
     if player_transform
         .translation
-        .distance_squared(Vec3::new(0.0, 0.0, 4.0))
+        .distance_squared(Vec3::new(0.0, 0.0, 2.7))
         < 50.0
     {
         return true;
     }
     false
+}
+
+fn first_audio_finished(query: Query<&Intro>) -> bool {
+    for _ in query.iter() {
+        return false;
+    }
+    true
 }
