@@ -178,6 +178,7 @@ fn movement(
                 let left = transform.forward() * Vec3::new(1.0, 0.0, 1.0);
                 translation += left * left_stick_y * time.delta_seconds() * 3.0;
             }
+
             controller.translation = Some(translation);
             for emitter_transform in knocking_wood_emitter.iter_mut() {
                 emitter_transform.set_listener_position(*transform, 4.0);

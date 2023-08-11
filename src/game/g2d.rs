@@ -51,7 +51,7 @@ fn setup(mut commands: Commands) {
                 clear_color: ClearColorConfig::None,
             },
             camera: Camera {
-                order: 1,
+                order: 2,
                 ..Default::default()
             },
             ..Default::default()
