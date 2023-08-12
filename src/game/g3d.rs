@@ -78,13 +78,13 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
         ..default()
     }));
 
-    commands.spawn((
-        AudioBundle {
-            source: asset_server.load("sounds/haunting_piano.ogg"),
-            settings: PlaybackSettings::DESPAWN,
-        },
-        Intro,
-    ));
+    // commands.spawn((
+    //     AudioBundle {
+    //         source: asset_server.load("sounds/haunting_piano.ogg"),
+    //         settings: PlaybackSettings::DESPAWN,
+    //     },
+    //     Intro,
+    // ));
 
     // spawn flashlight with camera
     commands
@@ -107,7 +107,15 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
             },
             RigidBody::Fixed,
             Collider::capsule_y(0.3, 0.2),
-            KinematicCharacterController::default(),
+            KinematicCharacterController {
+                autostep: Some(CharacterAutostep {
+                    max_height: CharacterLength::Absolute(0.5),
+                    min_width: CharacterLength::Absolute(0.2),
+                    include_dynamic_bodies: true,
+                }),
+                snap_to_ground: Some(CharacterLength::Absolute(0.5)),
+                ..Default::default()
+            },
             InputManagerBundle::<Action> {
                 // Stores "which actions are currently pressed"
                 action_state: ActionState::default(),
@@ -142,17 +150,35 @@ fn spawn_house(
 ) {
     assets.0.retain(|asset| {
         if let Some(gltf) = assets_gltf.get(asset) {
-            let boarding = assets_gltfmesh.get(&gltf.named_meshes["boarding"]).unwrap();
-            let mesh = &boarding.primitives[0].mesh.clone();
             commands.spawn((
                 SceneBundle {
                     scene: gltf.scenes[0].clone(),
                     transform: Transform::from_xyz(0.0, 0.0, 0.0).looking_at(Vec3::Z, Vec3::Y),
                     ..Default::default()
                 },
+                OnGame3DScreen,
+            ));
+
+            // spawn boarding colliders
+            let boarding = assets_gltfmesh.get(&gltf.named_meshes["boarding"]).unwrap();
+            let boarding_mesh = &boarding.primitives[0].mesh.clone();
+            commands.spawn((
                 RigidBody::Fixed,
                 Collider::from_bevy_mesh(
-                    assets_mesh.get(mesh).unwrap(),
+                    assets_mesh.get(boarding_mesh).unwrap(),
+                    &ComputedColliderShape::TriMesh,
+                )
+                .unwrap(),
+                OnGame3DScreen,
+            ));
+
+            // spawn stairs colliders
+            let stairs: &GltfMesh = assets_gltfmesh.get(&gltf.named_meshes["Stairs"]).unwrap();
+            let stairs_mesh = &stairs.primitives[0].mesh.clone();
+            commands.spawn((
+                RigidBody::Fixed,
+                Collider::from_bevy_mesh(
+                    assets_mesh.get(stairs_mesh).unwrap(),
                     &ComputedColliderShape::TriMesh,
                 )
                 .unwrap(),
@@ -170,7 +196,7 @@ fn spawn_house(
                     spatial: SpatialSettings::new(
                         Transform::from_translation(PLAYER_INIT_LOCATION),
                         4.0,
-                        Vec3::new(-10.0, 2.0, 0.0),
+                        Vec3::new(0.0, 2.0, 10.0),
                     ),
                 },
                 KnockingWoodEmitter,
@@ -256,6 +282,7 @@ fn open_door(
 ) {
     for mut player in anim_player.iter_mut() {
         insanity.0 += 1;
+        // not sure this sound even plays
         commands.spawn((
             SpatialAudioBundle {
                 source: sounds.door_open.clone(),
@@ -263,7 +290,7 @@ fn open_door(
                 spatial: SpatialSettings::new(
                     Transform::from_translation(PLAYER_INIT_LOCATION),
                     4.0,
-                    Vec3::new(0.0, 0.0, 2.7),
+                    Vec3::new(2.7, 0.0, 0.0),
                 ),
             },
             OnGame3DScreen,
@@ -276,7 +303,7 @@ fn player_close_to_front_door(player_query: Query<&Transform, With<Player>>) -> 
     let player_transform = player_query.single();
     if player_transform
         .translation
-        .distance_squared(Vec3::new(0.0, 0.0, 2.7))
+        .distance_squared(Vec3::new(2.7, 0.0, 0.0))
         < 50.0
     {
         return true;
