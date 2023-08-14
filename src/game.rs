@@ -5,10 +5,26 @@ mod g2d;
 mod g3d;
 
 use super::{despawn_screen, GameState};
+use bevy::gltf::Gltf;
 use bevy::prelude::*;
+use bevy_asset_loader::prelude::*;
 
 #[derive(Resource, Deref, DerefMut, Default)]
 pub(super) struct Insanity(u32);
+
+#[derive(AssetCollection, Resource)]
+pub struct AudioAssets {
+    #[asset(path = "audio/door_open.ogg")]
+    door_open: Handle<AudioSource>,
+    #[asset(path = "audio/knocking_wood.ogg")]
+    knocking_wood: Handle<AudioSource>,
+}
+
+#[derive(AssetCollection, Resource)]
+pub struct GltfAssets {
+    #[asset(path = "models/house.glb")]
+    house: Handle<Gltf>,
+}
 
 #[derive(Component)]
 struct InsanityTimer(Timer);

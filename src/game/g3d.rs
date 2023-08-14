@@ -1,7 +1,8 @@
-use super::{despawn_screen, GameState, Insanity, Player};
+use super::{despawn_screen, AudioAssets, GameState, GltfAssets, Insanity, Player};
 use bevy::gltf::Gltf;
 use bevy::prelude::*;
 use bevy_atmosphere::prelude::*;
+use bevy_gltf_components::ComponentsFromGltfPlugin;
 use bevy_rapier3d::prelude::*;
 use leafwing_input_manager::prelude::*;
 use rand::Rng;
@@ -12,13 +13,14 @@ pub struct G3dPlugin;
 impl Plugin for G3dPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins((
+            ComponentsFromGltfPlugin,
             InputManagerPlugin::<Action>::default(),
             RapierPhysicsPlugin::<NoUserData>::default(),
         ))
-        .add_systems(OnEnter(GameState::Game), setup)
+        .add_systems(OnEnter(GameState::Game), (setup, spawn_house))
         .add_systems(
             Update,
-            (camera_rotation, light_flicker, spawn_house).run_if(in_state(GameState::Game)),
+            (camera_rotation, light_flicker).run_if(in_state(GameState::Game)),
         )
         .add_systems(
             Update,
@@ -45,12 +47,6 @@ struct Animations {
     open_door: Handle<AnimationClip>,
 }
 
-#[derive(Resource)]
-struct Sounds {
-    door_open: Handle<AudioSource>,
-    knocking_wood: Handle<AudioSource>,
-}
-
 #[derive(Component)]
 struct KnockingWoodEmitter;
 
@@ -64,15 +60,7 @@ enum Action {
     Look,
 }
 
-fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
-    let gltf = asset_server.load("models/house.glb");
-    commands.insert_resource(LoadingAssets(vec![gltf.clone()]));
-
-    commands.insert_resource(Sounds {
-        door_open: asset_server.load("sounds/door_open.ogg"),
-        knocking_wood: asset_server.load("sounds/knocking_wood.ogg"),
-    });
-
+fn setup(mut commands: Commands) {
     commands.insert_resource(AtmosphereModel::new(Nishita {
         sun_position: Vec3::new(0., 0., -1.),
         ..default()
@@ -153,46 +141,42 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
 
 fn spawn_house(
     mut commands: Commands,
-    sounds: Res<Sounds>,
-    mut assets: ResMut<LoadingAssets>,
+    sounds: Res<AudioAssets>,
+    assets: Res<GltfAssets>,
     assets_gltf: Res<Assets<Gltf>>,
 ) {
-    assets.0.retain(|asset| {
-        if let Some(gltf) = assets_gltf.get(asset) {
-            commands.spawn((
-                SceneBundle {
-                    scene: gltf.scenes[0].clone(),
-                    transform: Transform::from_xyz(0.0, 0.0, 0.0).looking_at(Vec3::Z, Vec3::Y),
-                    ..Default::default()
-                },
-                AsyncSceneCollider {
-                    shape: Some(ComputedColliderShape::TriMesh),
-                    ..Default::default()
-                },
-                OnGame3DScreen,
-            ));
+    if let Some(gltf) = assets_gltf.get(&assets.house.clone()) {
+        commands.spawn((
+            SceneBundle {
+                scene: gltf.scenes[0].clone(),
+                transform: Transform::from_xyz(0.0, 0.0, 0.0).looking_at(Vec3::Z, Vec3::Y),
+                ..Default::default()
+            },
+            AsyncSceneCollider {
+                shape: Some(ComputedColliderShape::TriMesh),
+                ..Default::default()
+            },
+            OnGame3DScreen,
+        ));
 
-            commands.insert_resource(Animations {
-                open_door: gltf.animations[0].clone(),
-            });
+        commands.insert_resource(Animations {
+            open_door: gltf.animations[0].clone(),
+        });
 
-            commands.spawn((
-                SpatialAudioBundle {
-                    source: sounds.knocking_wood.clone(),
-                    settings: PlaybackSettings::LOOP,
-                    spatial: SpatialSettings::new(
-                        Transform::from_translation(PLAYER_INIT_LOCATION),
-                        4.0,
-                        Vec3::new(0.0, 2.0, 10.0),
-                    ),
-                },
-                KnockingWoodEmitter,
-                OnGame3DScreen,
-            ));
-            return false;
-        }
-        true
-    })
+        commands.spawn((
+            SpatialAudioBundle {
+                source: sounds.knocking_wood.clone(),
+                settings: PlaybackSettings::LOOP,
+                spatial: SpatialSettings::new(
+                    Transform::from_translation(PLAYER_INIT_LOCATION),
+                    4.0,
+                    Vec3::new(0.0, 2.0, 10.0),
+                ),
+            },
+            KnockingWoodEmitter,
+            OnGame3DScreen,
+        ));
+    }
 }
 
 fn movement(
@@ -263,7 +247,7 @@ fn light_flicker(time: Res<Time>, mut query: Query<(&mut Player, &mut SpotLight)
 fn open_door(
     mut commands: Commands,
     animations: Res<Animations>,
-    sounds: Res<Sounds>,
+    sounds: Res<AudioAssets>,
     mut insanity: ResMut<Insanity>,
     mut anim_player: Query<&mut AnimationPlayer, Added<AnimationPlayer>>,
 ) {
