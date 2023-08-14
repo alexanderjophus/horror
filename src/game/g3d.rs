@@ -1,5 +1,5 @@
 use super::{despawn_screen, GameState, Insanity, Player};
-use bevy::gltf::{Gltf, GltfMesh};
+use bevy::gltf::Gltf;
 use bevy::prelude::*;
 use bevy_atmosphere::prelude::*;
 use bevy_rapier3d::prelude::*;
@@ -32,7 +32,7 @@ impl Plugin for G3dPlugin {
     }
 }
 
-const PLAYER_INIT_LOCATION: Vec3 = Vec3::new(0.0, 1.4, -10.0);
+const PLAYER_INIT_LOCATION: Vec3 = Vec3::new(0.0, 0.8, -10.0);
 
 #[derive(Component)]
 struct OnGame3DScreen;
@@ -86,6 +86,13 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     //     Intro,
     // ));
 
+    // spawn ground
+    commands.spawn((
+        RigidBody::Fixed,
+        Collider::cuboid(100.0, 0.1, 100.0),
+        OnGame3DScreen,
+    ));
+
     // spawn flashlight with camera
     commands
         .spawn((
@@ -105,8 +112,9 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
             Player {
                 flashlight_flicker: Timer::from_seconds(0.1, TimerMode::Once),
             },
-            RigidBody::Fixed,
-            Collider::capsule_y(0.3, 0.2),
+            RigidBody::Dynamic,
+            LockedAxes::ROTATION_LOCKED_X | LockedAxes::ROTATION_LOCKED_Z,
+            Collider::capsule_y(0.5, 0.2),
             KinematicCharacterController {
                 autostep: Some(CharacterAutostep {
                     max_height: CharacterLength::Absolute(0.5),
@@ -129,7 +137,10 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
         ))
         .with_children(|parent| {
             parent.spawn((
-                Camera3dBundle::default(),
+                Camera3dBundle {
+                    transform: Transform::from_xyz(0.0, 0.7, 0.0),
+                    ..Default::default()
+                },
                 AtmosphereCamera::default(),
                 FogSettings {
                     color: Color::rgba(0.05, 0.05, 0.05, 1.0),
@@ -144,9 +155,7 @@ fn spawn_house(
     mut commands: Commands,
     sounds: Res<Sounds>,
     mut assets: ResMut<LoadingAssets>,
-    assets_mesh: Res<Assets<Mesh>>,
     assets_gltf: Res<Assets<Gltf>>,
-    assets_gltfmesh: Res<Assets<GltfMesh>>,
 ) {
     assets.0.retain(|asset| {
         if let Some(gltf) = assets_gltf.get(asset) {
@@ -156,32 +165,10 @@ fn spawn_house(
                     transform: Transform::from_xyz(0.0, 0.0, 0.0).looking_at(Vec3::Z, Vec3::Y),
                     ..Default::default()
                 },
-                OnGame3DScreen,
-            ));
-
-            // spawn boarding colliders
-            let boarding = assets_gltfmesh.get(&gltf.named_meshes["boarding"]).unwrap();
-            let boarding_mesh = &boarding.primitives[0].mesh.clone();
-            commands.spawn((
-                RigidBody::Fixed,
-                Collider::from_bevy_mesh(
-                    assets_mesh.get(boarding_mesh).unwrap(),
-                    &ComputedColliderShape::TriMesh,
-                )
-                .unwrap(),
-                OnGame3DScreen,
-            ));
-
-            // spawn stairs colliders
-            let stairs: &GltfMesh = assets_gltfmesh.get(&gltf.named_meshes["Stairs"]).unwrap();
-            let stairs_mesh = &stairs.primitives[0].mesh.clone();
-            commands.spawn((
-                RigidBody::Fixed,
-                Collider::from_bevy_mesh(
-                    assets_mesh.get(stairs_mesh).unwrap(),
-                    &ComputedColliderShape::TriMesh,
-                )
-                .unwrap(),
+                AsyncSceneCollider {
+                    shape: Some(ComputedColliderShape::TriMesh),
+                    ..Default::default()
+                },
                 OnGame3DScreen,
             ));
 
