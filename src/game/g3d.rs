@@ -22,10 +22,12 @@ impl Plugin for G3dPlugin {
             Update,
             (camera_rotation, light_flicker).run_if(in_state(GameState::Game)),
         )
+        // restrict player movement until the intro is finished
         .add_systems(
             Update,
-            movement.run_if(in_state(GameState::Game).and_then(first_audio_finished)),
+            movement.run_if(in_state(GameState::Game).and_then(intro_finished)),
         )
+        // open door automatically if the player is close to the front door
         .add_systems(
             Update,
             open_door.run_if(in_state(GameState::Game).and_then(player_close_to_front_door)),
@@ -282,7 +284,7 @@ fn player_close_to_front_door(player_query: Query<&Transform, With<Player>>) -> 
     false
 }
 
-fn first_audio_finished(query: Query<&Intro>) -> bool {
+fn intro_finished(query: Query<&Intro>) -> bool {
     for _ in query.iter() {
         return false;
     }
