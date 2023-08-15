@@ -13,6 +13,7 @@ pub struct G3dPlugin;
 impl Plugin for G3dPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins((
+            AtmospherePlugin,
             ComponentsFromGltfPlugin,
             InputManagerPlugin::<Action>::default(),
             RapierPhysicsPlugin::<NoUserData>::default(),
@@ -73,13 +74,46 @@ fn setup(mut commands: Commands) {
     //         source: asset_server.load("sounds/haunting_piano.ogg"),
     //         settings: PlaybackSettings::DESPAWN,
     //     },
+    //     Name::new("intro"),
     //     Intro,
+    //     OnGame3DScreen,
     // ));
 
     // spawn ground
     commands.spawn((
         RigidBody::Fixed,
         Collider::cuboid(100.0, 0.1, 100.0),
+        Name::new("ground"),
+        OnGame3DScreen,
+    ));
+
+    // spawn box around world
+    commands.spawn((
+        RigidBody::Fixed,
+        Collider::cuboid(20.0, 10.0, 1.0),
+        TransformBundle::from(Transform::from_xyz(0.0, 0.0, 20.0)),
+        Name::new("back wall"),
+        OnGame3DScreen,
+    ));
+    commands.spawn((
+        RigidBody::Fixed,
+        Collider::cuboid(20.0, 10.0, 1.0),
+        TransformBundle::from(Transform::from_xyz(0.0, 0.0, -20.0)),
+        Name::new("front wall"),
+        OnGame3DScreen,
+    ));
+    commands.spawn((
+        RigidBody::Fixed,
+        Collider::cuboid(1.0, 10.0, 20.0),
+        TransformBundle::from(Transform::from_xyz(20.0, 0.0, 0.0)),
+        Name::new("right wall"),
+        OnGame3DScreen,
+    ));
+    commands.spawn((
+        RigidBody::Fixed,
+        Collider::cuboid(1.0, 10.0, 20.0),
+        TransformBundle::from(Transform::from_xyz(-20.0, 0.0, 0.0)),
+        Name::new("left wall"),
         OnGame3DScreen,
     ));
 
@@ -203,8 +237,8 @@ fn movement(
         if action_state.pressed(Action::Move) {
             let mut translation = Vec3::ZERO;
             let axis_pair = action_state.clamped_axis_pair(Action::Move).unwrap();
-            let forward = transform.left() * Vec3::new(1.0, 0.0, 1.0);
-            let left = transform.forward() * Vec3::new(1.0, 0.0, 1.0);
+            let forward = transform.left();
+            let left = transform.forward();
             translation += forward * -axis_pair.x() * time.delta_seconds() * 3.0;
             translation += left * axis_pair.y() * time.delta_seconds() * 3.0;
 
