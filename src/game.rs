@@ -18,6 +18,8 @@ pub struct AudioAssets {
     door_open: Handle<AudioSource>,
     #[asset(path = "audio/knocking_wood.ogg")]
     knocking_wood: Handle<AudioSource>,
+    #[asset(path = "audio/haunting_piano.ogg")]
+    intro: Handle<AudioSource>,
 }
 
 #[derive(AssetCollection, Resource)]

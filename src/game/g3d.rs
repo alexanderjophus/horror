@@ -63,21 +63,21 @@ enum Action {
     Look,
 }
 
-fn setup(mut commands: Commands) {
+fn setup(mut commands: Commands, sounds: Res<AudioAssets>) {
     commands.insert_resource(AtmosphereModel::new(Nishita {
         sun_position: Vec3::new(0., 0., -1.),
         ..default()
     }));
 
-    // commands.spawn((
-    //     AudioBundle {
-    //         source: asset_server.load("sounds/haunting_piano.ogg"),
-    //         settings: PlaybackSettings::DESPAWN,
-    //     },
-    //     Name::new("intro"),
-    //     Intro,
-    //     OnGame3DScreen,
-    // ));
+    commands.spawn((
+        AudioBundle {
+            source: sounds.intro.clone(),
+            settings: PlaybackSettings::DESPAWN,
+        },
+        Name::new("intro"),
+        Intro,
+        OnGame3DScreen,
+    ));
 
     // spawn ground
     commands.spawn((

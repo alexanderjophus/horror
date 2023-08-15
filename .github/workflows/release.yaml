@@ -97,11 +97,11 @@ jobs:
         run: |
           zip --recurse-paths ../${{ env.binary }}.zip .
 
-      # - name: Upload binaries to artifacts
-      #   uses: actions/upload-artifact@v3
-      #   with:
-      #     path: ${{ env.binary }}.zip
-      #     name: linux
+      - name: Upload binaries to artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          path: ${{ env.binary }}.zip
+          name: linux
 
       - name: Upload binaries to release
         if: ${{ env.add_binaries_to_github_release == 'true' }}
@@ -143,11 +143,11 @@ jobs:
         run: |
           Compress-Archive -Path windows/* -DestinationPath ${{ env.binary }}.zip
 
-      # - name: Upload binaries to artifacts
-      #   uses: actions/upload-artifact@v3
-      #   with:
-      #     path: ${{ env.binary }}.zip
-      #     name: windows
+      - name: Upload binaries to artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          path: ${{ env.binary }}.zip
+          name: windows
 
       - name: Upload binaries to release
         if: ${{ env.add_binaries_to_github_release == 'true' }}
@@ -190,11 +190,11 @@ jobs:
           cp -r assets ${{ env.binary }}.app/Contents/MacOS/
           hdiutil create -fs HFS+ -volname "${{ env.binary }}" -srcfolder ${{ env.binary }}.app ${{ env.binary }}.dmg
 
-      # - name: Upload binaries to artifacts
-      #   uses: actions/upload-artifact@v3
-      #   with:
-      #     path: ${{ env.binary }}.dmg
-      #     name: mac
+      - name: Upload binaries to artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          path: ${{ env.binary }}.dmg
+          name: mac
 
       - name: Upload binaries to release
         if: ${{ env.add_binaries_to_github_release == 'true' }}
