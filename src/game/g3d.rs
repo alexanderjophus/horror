@@ -40,9 +40,6 @@ const PLAYER_INIT_LOCATION: Vec3 = Vec3::new(0.0, 0.8, -10.0);
 #[derive(Component)]
 struct OnGame3DScreen;
 
-#[derive(Resource)]
-struct LoadingAssets(Vec<Handle<Gltf>>);
-
 #[derive(Resource, Default)]
 struct Animations {
     open_door: Handle<AnimationClip>,
@@ -224,13 +221,6 @@ fn movement(
         ),
         With<Player>,
     >,
-    mut knocking_wood_emitter: Query<
-        &mut SpatialAudioSink,
-        (
-            With<KnockingWoodEmitter>,
-            Without<KinematicCharacterController>,
-        ),
-    >,
 ) {
     for (mut controller, transform, action_state) in query.iter_mut() {
         if action_state.pressed(&Action::Move) {
@@ -315,7 +305,7 @@ fn player_close_to_front_door(player_query: Query<&Transform, With<Player>>) -> 
 }
 
 fn intro_finished(query: Query<&Intro>) -> bool {
-    for _ in query.iter() {
+    if let Some(_) = query.iter().next() {
         return false;
     }
     true
