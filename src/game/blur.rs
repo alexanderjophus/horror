@@ -1,21 +1,22 @@
 use bevy::{
     core_pipeline::{
-        clear_color::ClearColorConfig, core_3d,
+        core_3d::graph::{Core3d, Node3d},
         fullscreen_vertex_shader::fullscreen_shader_vertex_state,
     },
     prelude::*,
     render::{
+        camera::ClearColorConfig,
         extract_component::{
             ComponentUniforms, ExtractComponent, ExtractComponentPlugin, UniformComponentPlugin,
         },
-        render_graph::{Node, NodeRunError, RenderGraphApp, RenderGraphContext},
+        render_graph::{Node, NodeRunError, RenderGraphApp, RenderGraphContext, RenderLabel},
         render_resource::{
-            BindGroupDescriptor, BindGroupEntry, BindGroupLayout, BindGroupLayoutDescriptor,
-            BindGroupLayoutEntry, BindingResource, BindingType, CachedRenderPipelineId,
-            ColorTargetState, ColorWrites, FragmentState, MultisampleState, Operations,
-            PipelineCache, PrimitiveState, RenderPassColorAttachment, RenderPassDescriptor,
-            RenderPipelineDescriptor, Sampler, SamplerBindingType, SamplerDescriptor, ShaderStages,
-            ShaderType, TextureFormat, TextureSampleType, TextureViewDimension,
+            BindGroupEntry, BindGroupLayout, BindGroupLayoutEntry, BindingResource, BindingType,
+            CachedRenderPipelineId, ColorTargetState, ColorWrites, FragmentState, MultisampleState,
+            Operations, PipelineCache, PrimitiveState, RenderPassColorAttachment,
+            RenderPassDescriptor, RenderPipelineDescriptor, Sampler, SamplerBindingType,
+            SamplerDescriptor, ShaderStages, ShaderType, TextureFormat, TextureSampleType,
+            TextureViewDimension,
         },
         renderer::{RenderContext, RenderDevice},
         texture::BevyDefault,
@@ -66,19 +67,19 @@ impl Plugin for BlurPlugin {
             // The Node needs to impl FromWorld
             .add_render_graph_node::<BlurPostProcessNode>(
                 // Specifiy the name of the graph, in this case we want the graph for 3d
-                core_3d::graph::NAME,
+                Core3d,
                 // It also needs the name of the node
-                BlurPostProcessNode::NAME,
+                BlurPostProcessLabel,
             )
             .add_render_graph_edges(
-                core_3d::graph::NAME,
+                Core3d,
                 // Specify the node ordering.
                 // This will automatically create all required node edges to enforce the given ordering.
-                &[
-                    core_3d::graph::node::TONEMAPPING,
-                    BlurPostProcessNode::NAME,
-                    core_3d::graph::node::END_MAIN_PASS_POST_PROCESSING,
-                ],
+                (
+                    Node3d::Tonemapping,
+                    BlurPostProcessLabel,
+                    Node3d::EndMainPassPostProcessing,
+                ),
             );
     }
 
@@ -101,9 +102,8 @@ struct BlurPostProcessNode {
     query: QueryState<&'static ViewTarget, With<ExtractedView>>,
 }
 
-impl BlurPostProcessNode {
-    pub const NAME: &str = "post_process";
-}
+#[derive(Debug, Hash, PartialEq, Eq, Clone, RenderLabel)]
+struct BlurPostProcessLabel;
 
 impl FromWorld for BlurPostProcessNode {
     fn from_world(world: &mut World) -> Self {
@@ -151,7 +151,8 @@ impl Node for BlurPostProcessNode {
         let pipeline_cache = world.resource::<PipelineCache>();
 
         // Get the pipeline from the cache
-        let Some(pipeline) = pipeline_cache.get_render_pipeline(post_process_pipeline.pipeline_id) else {
+        let Some(pipeline) = pipeline_cache.get_render_pipeline(post_process_pipeline.pipeline_id)
+        else {
             return Ok(());
         };
 
@@ -175,30 +176,28 @@ impl Node for BlurPostProcessNode {
         // Normally, you would create a bind_group in the Queue set, but this doesn't work with the post_process_write().
         // The reason it doesn't work is because each post_process_write will alternate the source/destination.
         // The only way to have the correct source/destination for the bind_group is to make sure you get it during the node execution.
-        let bind_group = render_context
-            .render_device()
-            .create_bind_group(&BindGroupDescriptor {
-                label: Some("post_process_bind_group"),
-                layout: &post_process_pipeline.layout,
-                // It's important for this to match the BindGroupLayout defined in the PostProcessPipeline
-                entries: &[
-                    BindGroupEntry {
-                        binding: 0,
-                        // Make sure to use the source view
-                        resource: BindingResource::TextureView(post_process.source),
-                    },
-                    BindGroupEntry {
-                        binding: 1,
-                        // Use the sampler created for the pipeline
-                        resource: BindingResource::Sampler(&post_process_pipeline.sampler),
-                    },
-                    BindGroupEntry {
-                        binding: 2,
-                        // Set the settings binding
-                        resource: settings_binding.clone(),
-                    },
-                ],
-            });
+        let bind_group = render_context.render_device().create_bind_group(
+            Some("post_process_bind_group"),
+            &post_process_pipeline.layout,
+            // It's important for this to match the BindGroupLayout defined in the PostProcessPipeline
+            &[
+                BindGroupEntry {
+                    binding: 0,
+                    // Make sure to use the source view
+                    resource: BindingResource::TextureView(post_process.source),
+                },
+                BindGroupEntry {
+                    binding: 1,
+                    // Use the sampler created for the pipeline
+                    resource: BindingResource::Sampler(&post_process_pipeline.sampler),
+                },
+                BindGroupEntry {
+                    binding: 2,
+                    // Set the settings binding
+                    resource: settings_binding.clone(),
+                },
+            ],
+        );
 
         // Begin the render pass
         let mut render_pass = render_context.begin_tracked_render_pass(RenderPassDescriptor {
@@ -211,6 +210,8 @@ impl Node for BlurPostProcessNode {
                 ops: Operations::default(),
             })],
             depth_stencil_attachment: None,
+            occlusion_query_set: None,
+            timestamp_writes: None,
         });
 
         // This is mostly just wgpu boilerplate for drawing a fullscreen triangle,
@@ -236,9 +237,9 @@ impl FromWorld for BlurPostProcessPipeline {
         let render_device = world.resource::<RenderDevice>();
 
         // We need to define the bind group layout used for our pipeline
-        let layout = render_device.create_bind_group_layout(&BindGroupLayoutDescriptor {
-            label: Some("post_process_bind_group_layout"),
-            entries: &[
+        let layout = render_device.create_bind_group_layout(
+            "post_process_bind_group_layout",
+            &[
                 // The screen texture
                 BindGroupLayoutEntry {
                     binding: 0,
@@ -269,7 +270,7 @@ impl FromWorld for BlurPostProcessPipeline {
                     count: None,
                 },
             ],
-        });
+        );
 
         // We can create the sampler here since it won't change at runtime and doesn't depend on the view
         let sampler = render_device.create_sampler(&SamplerDescriptor::default());
@@ -326,10 +327,8 @@ fn setup(mut commands: Commands) {
     // spawn 2D overlay
     commands.spawn((
         Camera2dBundle {
-            camera_2d: Camera2d {
-                clear_color: ClearColorConfig::None,
-            },
             camera: Camera {
+                clear_color: ClearColorConfig::None,
                 order: 1,
                 ..Default::default()
             },

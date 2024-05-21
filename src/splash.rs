@@ -10,12 +10,14 @@ impl Plugin for SplashPlugin {
     fn build(&self, app: &mut App) {
         // As this plugin is managing the splash screen, it will focus on the state `GameState::Splash`
         app.add_loading_state(
-            LoadingState::new(GameState::Splash).continue_to_state(GameState::Game),
+            LoadingState::new(GameState::Splash)
+                .continue_to_state(GameState::Game)
+                .load_collection::<AudioAssets>()
+                .load_collection::<GltfAssets>(),
         )
-        .add_collection_to_loading_state::<_, AudioAssets>(GameState::Splash)
-        .add_collection_to_loading_state::<_, GltfAssets>(GameState::Splash)
+        // .add_collection_to_loading_state::<_, AudioAssets>(GameState::Splash)
+        // .add_collection_to_loading_state::<_, GltfAssets>(GameState::Splash)
         // When entering the state, spawn everything needed for this screen
-        // .add_system(SystemSet::on_enter(GameState::Splash).with_system(splash_setup))
         .add_systems(OnEnter(GameState::Splash), splash_setup)
         // When exiting the state, despawn everything that was spawned for this screen
         .add_systems(

@@ -1,6 +1,6 @@
 use super::{despawn_screen, GameState, Insanity};
-use bevy::core_pipeline::clear_color::ClearColorConfig;
 use bevy::prelude::*;
+use bevy::render::camera::ClearColorConfig;
 
 pub struct G2dPlugin;
 
@@ -47,11 +47,9 @@ fn setup(mut commands: Commands) {
     // spawn 2D overlay
     commands.spawn((
         Camera2dBundle {
-            camera_2d: Camera2d {
-                clear_color: ClearColorConfig::None,
-            },
             camera: Camera {
                 order: 2,
+                clear_color: ClearColorConfig::None,
                 ..Default::default()
             },
             ..Default::default()

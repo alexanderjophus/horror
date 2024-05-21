@@ -19,7 +19,7 @@ fn main() {
     App::new()
         .add_plugins((DefaultPlugins.set(ImagePlugin::default_nearest()),))
         // Declare the game state
-        .add_state::<GameState>()
+        .init_state::<GameState>()
         // Adds the plugins for each state
         .add_plugins((
             splash::SplashPlugin,
