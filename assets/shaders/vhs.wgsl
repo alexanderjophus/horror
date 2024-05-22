@@ -40,7 +40,7 @@ fn distort(uv: vec2<f32>, time: f32) -> vec3<f32> {
     var color = textureSample(screen_texture, texture_sampler, st).xyz;
 
     let d2 = 0.0;
-    let d3 = random(vec2(st * 5. + time));
+    let d3 = random(vec2(st * 5. + time)) * 0.1 - 0.05;
     color += mix(d2, d3, step(0.005, pow( 1.0*st.x*st.y*(1.0-st.y)*(1.0-st.x), 1.0 )));
     
     return color;

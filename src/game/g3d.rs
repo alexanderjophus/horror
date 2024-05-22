@@ -1,4 +1,4 @@
-use super::{despawn_screen, AudioAssets, GameState, GltfAssets, Insanity, Player};
+use super::{despawn_screen, AudioAssets, GameState, GltfAssets, Player};
 use bevy::gltf::Gltf;
 use bevy::prelude::*;
 use bevy_atmosphere::prelude::*;
@@ -270,11 +270,9 @@ fn open_door(
     mut commands: Commands,
     animations: Res<Animations>,
     sounds: Res<AudioAssets>,
-    mut insanity: ResMut<Insanity>,
     mut anim_player: Query<&mut AnimationPlayer, Added<AnimationPlayer>>,
 ) {
     for mut player in anim_player.iter_mut() {
-        insanity.0 += 1;
         // not sure this sound even plays
         commands.spawn((
             SpatialBundle::from_transform(Transform::from_translation(Vec3::new(2.7, 0.0, 0.0))),

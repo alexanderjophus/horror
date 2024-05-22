@@ -327,7 +327,7 @@ fn setup(mut commands: Commands) {
         Camera2dBundle {
             camera: Camera {
                 clear_color: ClearColorConfig::None,
-                order: 1,
+                order: 2,
                 ..Default::default()
             },
             ..Default::default()
