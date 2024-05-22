@@ -1,8 +1,8 @@
-mod blur;
 #[cfg(feature = "debug")]
 mod debug3d;
 mod g2d;
 mod g3d;
+mod vhs;
 
 use super::{despawn_screen, GameState};
 use bevy::gltf::Gltf;
@@ -44,7 +44,7 @@ impl Plugin for GamePlugin {
             .add_plugins((
                 g2d::G2dPlugin,
                 g3d::G3dPlugin,
-                blur::BlurPlugin,
+                vhs::VHSPlugin,
                 #[cfg(feature = "debug")]
                 debug3d::Debug3DPlugin,
             ))

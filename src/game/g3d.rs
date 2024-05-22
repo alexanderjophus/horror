@@ -305,7 +305,7 @@ fn player_close_to_front_door(player_query: Query<&Transform, With<Player>>) -> 
 }
 
 fn intro_finished(query: Query<&Intro>) -> bool {
-    if let Some(_) = query.iter().next() {
+    if query.iter().next().is_some() {
         return false;
     }
     true

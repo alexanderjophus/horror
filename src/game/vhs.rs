@@ -27,11 +27,9 @@ use bevy::{
 
 use crate::GameState;
 
-use super::Insanity;
+pub struct VHSPlugin;
 
-pub struct BlurPlugin;
-
-impl Plugin for BlurPlugin {
+impl Plugin for VHSPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins((
             // The settings will be a component that lives in the main world but will
@@ -40,11 +38,11 @@ impl Plugin for BlurPlugin {
             // This plugin will take care of extracting it automatically.
             // It's important to derive [`ExtractComponent`] on [`PostProcessingSettings`]
             // for this plugin to work correctly.
-            ExtractComponentPlugin::<BlurPostProcessSettings>::default(),
+            ExtractComponentPlugin::<VHSPostProcessSettings>::default(),
             // The settings will also be the data used in the shader.
             // This plugin will prepare the component for the GPU by creating a uniform buffer
             // and writing the data to that buffer every frame.
-            UniformComponentPlugin::<BlurPostProcessSettings>::default(),
+            UniformComponentPlugin::<VHSPostProcessSettings>::default(),
         ))
         .add_systems(OnEnter(GameState::Game), setup)
         .add_systems(Update, update_blur.run_if(in_state(GameState::Game)));
@@ -65,11 +63,11 @@ impl Plugin for BlurPlugin {
             // you need to extract it manually or with the plugin like above.
             // Add a [`Node`] to the [`RenderGraph`]
             // The Node needs to impl FromWorld
-            .add_render_graph_node::<BlurPostProcessNode>(
+            .add_render_graph_node::<VHSPostProcessNode>(
                 // Specifiy the name of the graph, in this case we want the graph for 3d
                 Core3d,
                 // It also needs the name of the node
-                BlurPostProcessLabel,
+                VHSPostProcessLabel,
             )
             .add_render_graph_edges(
                 Core3d,
@@ -77,7 +75,7 @@ impl Plugin for BlurPlugin {
                 // This will automatically create all required node edges to enforce the given ordering.
                 (
                     Node3d::Tonemapping,
-                    BlurPostProcessLabel,
+                    VHSPostProcessLabel,
                     Node3d::EndMainPassPostProcessing,
                 ),
             );
@@ -91,21 +89,21 @@ impl Plugin for BlurPlugin {
 
         render_app
             // Initialize the pipeline
-            .init_resource::<BlurPostProcessPipeline>();
+            .init_resource::<VHSPostProcessPipeline>();
     }
 }
 
 /// The post process node used for the render graph
-struct BlurPostProcessNode {
+struct VHSPostProcessNode {
     // The node needs a query to gather data from the ECS in order to do its rendering,
     // but it's not a normal system so we need to define it manually.
     query: QueryState<&'static ViewTarget, With<ExtractedView>>,
 }
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone, RenderLabel)]
-struct BlurPostProcessLabel;
+struct VHSPostProcessLabel;
 
-impl FromWorld for BlurPostProcessNode {
+impl FromWorld for VHSPostProcessNode {
     fn from_world(world: &mut World) -> Self {
         Self {
             query: QueryState::new(world),
@@ -113,7 +111,7 @@ impl FromWorld for BlurPostProcessNode {
     }
 }
 
-impl Node for BlurPostProcessNode {
+impl Node for VHSPostProcessNode {
     // This will run every frame before the run() method
     // The important difference is that `self` is `mut` here
     fn update(&mut self, world: &mut World) {
@@ -144,7 +142,7 @@ impl Node for BlurPostProcessNode {
         };
 
         // Get the pipeline resource that contains the global data we need to create the render pipeline
-        let post_process_pipeline = world.resource::<BlurPostProcessPipeline>();
+        let post_process_pipeline = world.resource::<VHSPostProcessPipeline>();
 
         // The pipeline cache is a cache of all previously created pipelines.
         // It is required to avoid creating a new pipeline each frame, which is expensive due to shader compilation.
@@ -157,7 +155,7 @@ impl Node for BlurPostProcessNode {
         };
 
         // Get the settings uniform binding
-        let settings_uniforms = world.resource::<ComponentUniforms<BlurPostProcessSettings>>();
+        let settings_uniforms = world.resource::<ComponentUniforms<VHSPostProcessSettings>>();
         let Some(settings_binding) = settings_uniforms.uniforms().binding() else {
             return Ok(());
         };
@@ -226,13 +224,13 @@ impl Node for BlurPostProcessNode {
 
 // This contains global data used by the render pipeline. This will be created once on startup.
 #[derive(Resource)]
-struct BlurPostProcessPipeline {
+struct VHSPostProcessPipeline {
     layout: BindGroupLayout,
     sampler: Sampler,
     pipeline_id: CachedRenderPipelineId,
 }
 
-impl FromWorld for BlurPostProcessPipeline {
+impl FromWorld for VHSPostProcessPipeline {
     fn from_world(world: &mut World) -> Self {
         let render_device = world.resource::<RenderDevice>();
 
@@ -276,7 +274,7 @@ impl FromWorld for BlurPostProcessPipeline {
         let sampler = render_device.create_sampler(&SamplerDescriptor::default());
 
         // Get the shader handle
-        let shader = world.resource::<AssetServer>().load("shaders/blur.wgsl");
+        let shader = world.resource::<AssetServer>().load("shaders/vhs.wgsl");
 
         let pipeline_id = world
             .resource_mut::<PipelineCache>()
@@ -316,8 +314,8 @@ impl FromWorld for BlurPostProcessPipeline {
 
 // This is the component that will get passed to the shader
 #[derive(Component, Default, Clone, Copy, ExtractComponent, ShaderType)]
-struct BlurPostProcessSettings {
-    intensity: f32,
+struct VHSPostProcessSettings {
+    time: f32,
 }
 
 #[derive(Component)]
@@ -334,17 +332,13 @@ fn setup(mut commands: Commands) {
             },
             ..Default::default()
         },
-        BlurPostProcessSettings { intensity: 0.0 },
+        VHSPostProcessSettings { time: 0.0 },
         OnPPScreen,
     ));
 }
 
-fn update_blur(mut settings: Query<&mut BlurPostProcessSettings>, insanity: Res<Insanity>) {
+fn update_blur(mut settings: Query<&mut VHSPostProcessSettings>) {
     for mut setting in &mut settings {
-        let mut intensity = insanity.0 as f32;
-        intensity *= 0.025;
-
-        // Set the intensity. This will then be extracted to the render world and uploaded to the gpu automatically.
-        setting.intensity = intensity;
+        setting.time += 0.01;
     }
 }
