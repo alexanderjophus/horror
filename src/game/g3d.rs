@@ -78,8 +78,6 @@ fn setup(
 
     if asset_server.load_state(&textures.skybox) == LoadState::Loaded {
         let image = images.get_mut(textures.skybox.clone()).unwrap();
-        info!("image height {} width {}", image.height(), image.width());
-        info!("image texture descriptor {:?}", image.texture_descriptor);
         if image.texture_descriptor.array_layer_count() == 1 {
             image.reinterpret_stacked_2d_as_array(image.height() / image.width());
             image.texture_view_descriptor = Some(TextureViewDescriptor {
