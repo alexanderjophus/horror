@@ -316,6 +316,7 @@ impl FromWorld for VHSPostProcessPipeline {
 #[derive(Component, Default, Clone, Copy, ExtractComponent, ShaderType)]
 struct VHSPostProcessSettings {
     time: f32,
+    _wasm_padding: Vec3,
 }
 
 #[derive(Component)]
@@ -332,7 +333,10 @@ fn setup(mut commands: Commands) {
             },
             ..Default::default()
         },
-        VHSPostProcessSettings { time: 0.0 },
+        VHSPostProcessSettings {
+            time: 0.0,
+            _wasm_padding: Vec3::ZERO,
+        },
         OnPPScreen,
     ));
 }

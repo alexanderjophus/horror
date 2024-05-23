@@ -5,6 +5,7 @@
 @group(0) @binding(1) var texture_sampler: sampler;
 struct VHSPostProcessSettings {
     time: f32,
+    _padding_a: vec3<f32>,
 }
 @group(0) @binding(2) var<uniform> settings: VHSPostProcessSettings;
 

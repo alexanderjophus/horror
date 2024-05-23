@@ -17,3 +17,8 @@ Debug options
 ```
 cargo run -F debug
 ```
+
+To play in the browser
+```
+cargo run --target wasm32-unknown-unknown
+```

@@ -1,7 +1,7 @@
 use super::{despawn_screen, AudioAssets, GameState, GltfAssets, Player};
 use bevy::gltf::Gltf;
 use bevy::prelude::*;
-use bevy_atmosphere::prelude::*;
+// use bevy_atmosphere::prelude::*;
 use bevy_rapier3d::prelude::*;
 use leafwing_input_manager::prelude::*;
 use rand::Rng;
@@ -12,7 +12,7 @@ pub struct G3dPlugin;
 impl Plugin for G3dPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins((
-            AtmospherePlugin,
+            // AtmospherePlugin,
             InputManagerPlugin::<Action>::default(),
             RapierPhysicsPlugin::<NoUserData>::default(),
         ))
@@ -59,10 +59,10 @@ enum Action {
 }
 
 fn setup(mut commands: Commands, sounds: Res<AudioAssets>) {
-    commands.insert_resource(AtmosphereModel::new(Nishita {
-        sun_position: Vec3::new(0., 0., -1.),
-        ..default()
-    }));
+    // commands.insert_resource(AtmosphereModel::new(Nishita {
+    //     sun_position: Vec3::new(0., 0., -1.),
+    //     ..default()
+    // }));
 
     commands.spawn((
         AudioBundle {
@@ -160,7 +160,7 @@ fn setup(mut commands: Commands, sounds: Res<AudioAssets>) {
                     transform: Transform::from_xyz(0.0, 0.7, 0.0),
                     ..Default::default()
                 },
-                AtmosphereCamera::default(),
+                // AtmosphereCamera::default(),
                 FogSettings {
                     color: Color::rgba(0.05, 0.05, 0.05, 1.0),
                     falloff: FogFalloff::Exponential { density: 0.15 },
