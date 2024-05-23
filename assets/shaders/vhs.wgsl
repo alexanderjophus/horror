@@ -16,7 +16,18 @@ struct VHSPostProcessSettings {
 #endif
 #endif
 
-fn random(st: vec2<f32>) -> f32 {
+fn random(x: f32) -> f32 {
+#ifdef RANDOM_SINLESS
+    x = fract(x * RANDOM_SCALE.x);
+    x *= x + 33.33;
+    x *= x + x;
+    return fract(x);
+#else
+    return fract(sin(x) * 43758.5453);
+#endif
+}
+
+fn random_vec2(st: vec2<f32>) -> f32 {
 #ifdef RANDOM_SINLESS
     vec3 p3  = fract(vec3(st.xyx) * RANDOM_SCALE.xyz);
     p3 += dot(p3, p3.yzx + 33.33);
@@ -35,13 +46,17 @@ fn warp(uv: vec2<f32>) -> vec2<f32> {
 	return uv + delta * delta_offset;
 }
 
-fn distort(uv: vec2<f32>, time: f32) -> vec3<f32> {
-    let st = warp(uv);
-    var color = textureSample(screen_texture, texture_sampler, st).xyz;
+fn modulo(x: f32, y: f32) -> f32 {
+    return x - y * floor(x / y);
+}
 
-    let d2 = 0.0;
-    let d3 = random(vec2(st * 5. + time)) * 0.1 - 0.05;
-    color += mix(d2, d3, step(0.005, pow( 1.0*st.x*st.y*(1.0-st.y)*(1.0-st.x), 1.0 )));
+fn distort(uv: vec2<f32>, time: f32) -> vec3<f32> {
+    var color = textureSample(screen_texture, texture_sampler, uv).xyz;
+    let st = warp(uv);
+
+    let d2 = 1.0;
+    let d3 = random_vec2(vec2(st * 5. + time)) * 1. - random(step((0.5 * modulo(-time/1.5 + st.y, 2.0)), .95));
+    color += mix(d2, d3, step(0.005, pow( 1.0*st.x*st.y*(1.0-st.y)*(1.0-st.x), 1.0 )))/5.;
     
     return color;
 }
