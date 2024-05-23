@@ -2,7 +2,7 @@ use bevy::prelude::*;
 use bevy_asset_loader::prelude::*;
 
 use super::{despawn_screen, GameState, GAME_NAME};
-use crate::game::{AudioAssets, GltfAssets};
+use crate::game::{AudioAssets, GltfAssets, TextureAssets};
 
 pub struct SplashPlugin;
 
@@ -13,10 +13,9 @@ impl Plugin for SplashPlugin {
             LoadingState::new(GameState::Splash)
                 .continue_to_state(GameState::Game)
                 .load_collection::<AudioAssets>()
-                .load_collection::<GltfAssets>(),
+                .load_collection::<GltfAssets>()
+                .load_collection::<TextureAssets>(),
         )
-        // .add_collection_to_loading_state::<_, AudioAssets>(GameState::Splash)
-        // .add_collection_to_loading_state::<_, GltfAssets>(GameState::Splash)
         // When entering the state, spawn everything needed for this screen
         .add_systems(OnEnter(GameState::Splash), splash_setup)
         // When exiting the state, despawn everything that was spawned for this screen

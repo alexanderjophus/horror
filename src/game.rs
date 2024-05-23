@@ -25,6 +25,12 @@ pub struct GltfAssets {
     house: Handle<Gltf>,
 }
 
+#[derive(AssetCollection, Resource)]
+pub struct TextureAssets {
+    #[asset(path = "textures/skybox.png")]
+    skybox: Handle<Image>,
+}
+
 #[derive(Component, Default)]
 pub(super) struct Player {
     flashlight_flicker: Timer,

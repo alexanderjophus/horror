@@ -1,7 +1,9 @@
-use super::{despawn_screen, AudioAssets, GameState, GltfAssets, Player};
+use super::{despawn_screen, AudioAssets, GameState, GltfAssets, Player, TextureAssets};
+use bevy::asset::LoadState;
+use bevy::core_pipeline::Skybox;
 use bevy::gltf::Gltf;
 use bevy::prelude::*;
-// use bevy_atmosphere::prelude::*;
+use bevy::render::render_resource::{TextureViewDescriptor, TextureViewDimension};
 use bevy_rapier3d::prelude::*;
 use leafwing_input_manager::prelude::*;
 use rand::Rng;
@@ -12,7 +14,6 @@ pub struct G3dPlugin;
 impl Plugin for G3dPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins((
-            // AtmospherePlugin,
             InputManagerPlugin::<Action>::default(),
             RapierPhysicsPlugin::<NoUserData>::default(),
         ))
@@ -58,12 +59,13 @@ enum Action {
     Look,
 }
 
-fn setup(mut commands: Commands, sounds: Res<AudioAssets>) {
-    // commands.insert_resource(AtmosphereModel::new(Nishita {
-    //     sun_position: Vec3::new(0., 0., -1.),
-    //     ..default()
-    // }));
-
+fn setup(
+    asset_server: Res<AssetServer>,
+    mut commands: Commands,
+    mut images: ResMut<Assets<Image>>,
+    sounds: Res<AudioAssets>,
+    textures: ResMut<TextureAssets>,
+) {
     commands.spawn((
         AudioBundle {
             source: sounds.intro.clone(),
@@ -71,6 +73,29 @@ fn setup(mut commands: Commands, sounds: Res<AudioAssets>) {
         },
         Name::new("intro"),
         Intro,
+        OnGame3DScreen,
+    ));
+
+    if asset_server.load_state(&textures.skybox) == LoadState::Loaded {
+        let image = images.get_mut(textures.skybox.clone()).unwrap();
+        info!("image height {} width {}", image.height(), image.width());
+        info!("image texture descriptor {:?}", image.texture_descriptor);
+        if image.texture_descriptor.array_layer_count() == 1 {
+            image.reinterpret_stacked_2d_as_array(image.height() / image.width());
+            image.texture_view_descriptor = Some(TextureViewDescriptor {
+                dimension: Some(TextureViewDimension::Cube),
+                ..default()
+            });
+        }
+    }
+
+    // spawn skybox
+    commands.spawn((
+        Transform::from_xyz(0.0, 0.0, 0.0),
+        Skybox {
+            image: textures.skybox.clone(),
+            brightness: 1000.0,
+        },
         OnGame3DScreen,
     ));
 

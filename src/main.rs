@@ -5,7 +5,7 @@ mod splash;
 
 use bevy::prelude::*;
 
-pub const GAME_NAME: &str = "Horror Game";
+pub const GAME_NAME: &str = "Jophus' Horror";
 
 // Enum that will be used as a global state for the game
 #[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States)]
