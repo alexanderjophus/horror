@@ -76,6 +76,19 @@ fn setup(
         OnGame3DScreen,
     ));
 
+    commands.spawn((
+        DirectionalLightBundle {
+            directional_light: DirectionalLight {
+                illuminance: 320.0,
+                ..default()
+            },
+            transform: Transform::from_xyz(0.0, 2.0, 0.0)
+                .with_rotation(Quat::from_rotation_x(-PI / 4.)),
+            ..default()
+        },
+        Name::new("moon"),
+    ));
+
     if asset_server.load_state(&textures.skybox) == LoadState::Loaded {
         let image = images.get_mut(textures.skybox.clone()).unwrap();
         if image.texture_descriptor.array_layer_count() == 1 {
@@ -86,16 +99,6 @@ fn setup(
             });
         }
     }
-
-    // spawn skybox
-    commands.spawn((
-        Transform::from_xyz(0.0, 0.0, 0.0),
-        Skybox {
-            image: textures.skybox.clone(),
-            brightness: 1000.0,
-        },
-        OnGame3DScreen,
-    ));
 
     // spawn ground
     commands.spawn((
@@ -183,6 +186,10 @@ fn setup(
                     transform: Transform::from_xyz(0.0, 0.7, 0.0),
                     ..Default::default()
                 },
+                Skybox {
+                    image: textures.skybox.clone(),
+                    brightness: 100.0,
+                },
                 // AtmosphereCamera::default(),
                 FogSettings {
                     color: Color::rgba(0.05, 0.05, 0.05, 1.0),
@@ -191,6 +198,11 @@ fn setup(
                 },
             ));
         });
+
+    commands.insert_resource(AmbientLight {
+        color: Color::rgb_u8(210, 220, 240),
+        brightness: 1.0,
+    });
 }
 
 fn spawn_house(

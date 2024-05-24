@@ -14,6 +14,5 @@ bevy = { version = "0.13.2", features=["jpeg"] }
 bevy-inspector-egui = "0.24.0"
 rand = "0.8.5"
 bevy_rapier3d = "0.26.0"
-bevy_atmosphere = "0.9.1"
 leafwing-input-manager = "0.13.0"
 bevy_asset_loader = "0.20.0"
