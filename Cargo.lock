@@ -2310,7 +2310,7 @@ dependencies = [
 
 [[package]]
 name = "horror"
-version = "0.1.7"
+version = "0.1.8"
 dependencies = [
  "bevy",
  "bevy-inspector-egui",
