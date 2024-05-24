@@ -3,7 +3,7 @@ mod debug;
 mod game;
 mod splash;
 
-use bevy::prelude::*;
+use bevy::{asset::AssetMetaCheck, prelude::*};
 
 pub const GAME_NAME: &str = "Jophus' Horror";
 
@@ -17,6 +17,7 @@ enum GameState {
 
 fn main() {
     App::new()
+        .insert_resource(AssetMetaCheck::Never)
         .add_plugins((DefaultPlugins.set(ImagePlugin::default_nearest()),))
         // Declare the game state
         .init_state::<GameState>()
