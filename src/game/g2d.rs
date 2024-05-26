@@ -1,5 +1,3 @@
-use std::time::Instant;
-
 use super::{despawn_screen, GameState};
 use bevy::prelude::*;
 
@@ -9,9 +7,7 @@ pub(super) struct Vhs {
 }
 
 #[derive(Component, Default)]
-pub(super) struct Timestamp {
-    ts: Time<Real>,
-}
+pub(super) struct Timestamp {}
 
 pub struct G2dPlugin;
 
@@ -44,9 +40,7 @@ fn setup(mut commands: Commands) {
             left: Val::Px(5.0),
             ..Default::default()
         }),
-        Timestamp {
-            ts: Time::new(Instant::now()),
-        },
+        Timestamp {},
         OnGame2DScreen,
     ));
 
@@ -98,13 +92,12 @@ fn update_vhs_play(time: Res<Time<Real>>, mut query: Query<(&mut Vhs, &mut Text)
     }
 }
 
-fn update_vhs_timer(mut query: Query<(&mut Timestamp, &mut Text)>) {
-    let (mut ts, mut text) = query.single_mut();
-    ts.ts.update();
+fn update_vhs_timer(time: Res<Time>, mut query: Query<(&mut Timestamp, &mut Text)>) {
+    let (_, mut text) = query.single_mut();
     text.sections[0].value = format!(
         "{:02}:{:02}:{:02}",
-        ts.ts.elapsed_seconds() as u32 / 3600,
-        ts.ts.elapsed_seconds() as u32 / 60 % 60,
-        ts.ts.elapsed_seconds() as u32 % 60
+        time.elapsed_seconds() as u32 / 3600,
+        time.elapsed_seconds() as u32 / 60 % 60,
+        time.elapsed_seconds() as u32 % 60
     );
 }
