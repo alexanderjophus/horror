@@ -63,6 +63,8 @@ fn setup(
     asset_server: Res<AssetServer>,
     mut commands: Commands,
     mut images: ResMut<Assets<Image>>,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
     sounds: Res<AudioAssets>,
     textures: ResMut<TextureAssets>,
 ) {
@@ -104,6 +106,16 @@ fn setup(
     commands.spawn((
         RigidBody::Fixed,
         Collider::cuboid(100.0, 0.1, 100.0),
+        PbrBundle {
+            mesh: meshes.add(Mesh::from(Cuboid::new(100.0, 0.1, 100.0))),
+            material: materials.add(StandardMaterial {
+                base_color: Color::rgb(0.5, 0.5, 0.5),
+                unlit: true,
+                ..default()
+            }),
+            transform: Transform::from_xyz(0.0, -0.1, 0.0),
+            ..Default::default()
+        },
         Name::new("ground"),
         OnGame3DScreen,
     ));
