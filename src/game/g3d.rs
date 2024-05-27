@@ -1,4 +1,6 @@
-use super::{despawn_screen, AudioAssets, GameState, GltfAssets, Player, TextureAssets};
+use crate::GameState;
+
+use super::{despawn_screen, AudioAssets, GameplayState, GltfAssets, Player, TextureAssets};
 use bevy::asset::LoadState;
 use bevy::core_pipeline::Skybox;
 use bevy::gltf::Gltf;
@@ -20,17 +22,27 @@ impl Plugin for G3dPlugin {
         .add_systems(OnEnter(GameState::Game), (setup, spawn_house))
         .add_systems(
             Update,
-            (camera_rotation, light_flicker).run_if(in_state(GameState::Game)),
+            (camera_rotation, light_flicker)
+                .run_if(in_state(GameState::Game))
+                .run_if(in_state(GameplayState::Playing)),
         )
         // restrict player movement until the intro is finished
         .add_systems(
             Update,
-            movement.run_if(in_state(GameState::Game).and_then(intro_finished)),
+            movement.run_if(
+                in_state(GameState::Game)
+                    .and_then(in_state(GameplayState::Playing))
+                    .and_then(intro_finished),
+            ),
         )
         // open door automatically if the player is close to the front door
         .add_systems(
             Update,
-            open_door.run_if(in_state(GameState::Game).and_then(player_close_to_front_door)),
+            open_door.run_if(
+                in_state(GameState::Game)
+                    .and_then(in_state(GameplayState::Playing))
+                    .and_then(player_close_to_front_door),
+            ),
         )
         .add_systems(OnExit(GameState::Game), (despawn_screen::<OnGame3DScreen>,));
     }
@@ -52,7 +64,6 @@ struct KnockingWoodEmitter;
 #[derive(Component)]
 struct Intro;
 
-// This is the list of "things in the game I want to be able to do based on input"
 #[derive(Actionlike, PartialEq, Eq, Clone, Copy, Hash, Debug, Reflect)]
 enum Action {
     Move,

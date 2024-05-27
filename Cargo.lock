@@ -850,6 +850,14 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8050e2869fe341db6874203b5a01ff12673807a2c7c80cb829f6c7bea6997268"
 
 [[package]]
+name = "bevy_quickmenu"
+version = "0.4.0"
+source = "git+https://github.com/terhechte/bevy_quickmenu#b30072318daa5c38c6a457a6f255145815c1a050"
+dependencies = [
+ "bevy",
+]
+
+[[package]]
 name = "bevy_rapier3d"
 version = "0.26.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2315,6 +2323,7 @@ dependencies = [
  "bevy",
  "bevy-inspector-egui",
  "bevy_asset_loader",
+ "bevy_quickmenu",
  "bevy_rapier3d",
  "leafwing-input-manager",
  "rand",

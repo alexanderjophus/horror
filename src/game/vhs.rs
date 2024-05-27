@@ -27,6 +27,8 @@ use bevy::{
 
 use crate::GameState;
 
+use super::GameplayState;
+
 pub struct VHSPlugin;
 
 impl Plugin for VHSPlugin {
@@ -45,7 +47,7 @@ impl Plugin for VHSPlugin {
             UniformComponentPlugin::<VHSPostProcessSettings>::default(),
         ))
         .add_systems(OnEnter(GameState::Game), setup)
-        .add_systems(Update, update_blur.run_if(in_state(GameState::Game)));
+        .add_systems(Update, update_blur.run_if(in_state(GameplayState::Playing)));
 
         // We need to get the render app from the main app
         let Ok(render_app) = app.get_sub_app_mut(RenderApp) else {

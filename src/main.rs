@@ -18,7 +18,7 @@ enum GameState {
 fn main() {
     App::new()
         .insert_resource(AssetMetaCheck::Never)
-        .add_plugins((DefaultPlugins.set(ImagePlugin::default_nearest()),))
+        .add_plugins(DefaultPlugins.set(ImagePlugin::default_nearest()))
         // Declare the game state
         .init_state::<GameState>()
         // Adds the plugins for each state

@@ -1,4 +1,6 @@
-use super::{despawn_screen, GameState};
+use crate::GameState;
+
+use super::{despawn_screen, GameplayState};
 use bevy::prelude::*;
 
 #[derive(Component, Default)]
@@ -14,8 +16,16 @@ pub struct G2dPlugin;
 impl Plugin for G2dPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(OnEnter(GameState::Game), setup)
-            .add_systems(Update, update_vhs_play.run_if(in_state(GameState::Game)))
-            .add_systems(Update, update_vhs_timer.run_if(in_state(GameState::Game)))
+            .add_systems(
+                Update,
+                update_vhs_play
+                    .run_if(in_state(GameState::Game).and_then(in_state(GameplayState::Playing))),
+            )
+            .add_systems(
+                Update,
+                update_vhs_timer
+                    .run_if(in_state(GameState::Game).and_then(in_state(GameplayState::Playing))),
+            )
             .add_systems(OnExit(GameState::Game), (despawn_screen::<OnGame2DScreen>,));
     }
 }
