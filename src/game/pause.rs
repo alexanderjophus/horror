@@ -1,3 +1,5 @@
+use crate::GAME_NAME;
+
 use super::{despawn_screen, GameplayState};
 use bevy::prelude::*;
 use bevy_quickmenu::{
@@ -92,7 +94,7 @@ fn root_menu(_state: &PauseState) -> Menu<Screens> {
     Menu::new(
         "root",
         vec![
-            MenuItem::headline("Basic Example"),
+            MenuItem::headline(GAME_NAME),
             MenuItem::screen("Sound (TODO)", Screens::Sound),
         ],
     )
