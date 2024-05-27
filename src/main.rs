@@ -1,6 +1,7 @@
 #[cfg(feature = "debug")]
 mod debug;
 mod game;
+mod menu;
 mod splash;
 
 use bevy::{asset::AssetMetaCheck, prelude::*};
@@ -12,6 +13,7 @@ pub const GAME_NAME: &str = "Jophus' Horror";
 enum GameState {
     #[default]
     Splash,
+    Menu,
     Game,
 }
 
@@ -24,6 +26,7 @@ fn main() {
         // Adds the plugins for each state
         .add_plugins((
             splash::SplashPlugin,
+            menu::MenuPlugin,
             game::GamePlugin,
             #[cfg(feature = "debug")]
             debug::DebugPlugin,

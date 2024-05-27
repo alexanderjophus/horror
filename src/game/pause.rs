@@ -23,9 +23,6 @@ impl Plugin for PausePlugin {
 #[derive(Component)]
 struct OnPauseScreen;
 
-#[derive(Component)]
-struct PauseCamera;
-
 #[derive(Debug, Event)]
 enum MenuEvent {}
 
@@ -60,7 +57,6 @@ fn setup(mut commands: Commands) {
             },
             ..Default::default()
         },
-        PauseCamera,
         OnPauseScreen,
     ));
 
