@@ -1,17 +1,14 @@
 use super::{despawn_screen, GameState};
+
 use bevy::prelude::*;
-use bevy_quickmenu::{
-    style::Stylesheet, ActionTrait, Menu, MenuItem, MenuState, QuickMenuPlugin, ScreenTrait,
-};
+use bevy_egui::{egui, EguiContexts, EguiPlugin};
 
 pub struct MenuPlugin;
 
 impl Plugin for MenuPlugin {
     fn build(&self, app: &mut App) {
-        app.add_event::<MenuEvent>()
-            .add_plugins(QuickMenuPlugin::<Screens>::new())
-            .add_systems(OnEnter(GameState::Menu), setup)
-            .add_systems(Update, event_reader.run_if(in_state(GameState::Menu)))
+        app.add_plugins(EguiPlugin)
+            .add_systems(Update, ui.run_if(in_state(GameState::Menu)))
             .add_systems(OnExit(GameState::Menu), despawn_screen::<OnMenuScreen>);
     }
 }
@@ -19,85 +16,33 @@ impl Plugin for MenuPlugin {
 #[derive(Component)]
 struct OnMenuScreen;
 
-#[derive(Debug, Event)]
-enum MenuEvent {
-    Start,
-}
-
-#[derive(Debug, Clone, Default)]
-struct MenuStateSettings {}
-
-#[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
-enum MenuActions {
-    StartGame,
-}
-
-impl ActionTrait for MenuActions {
-    type State = MenuStateSettings;
-    type Event = MenuEvent;
-    fn handle(&self, _: &mut MenuStateSettings, event_write: &mut EventWriter<MenuEvent>) {
-        match self {
-            MenuActions::StartGame => {
-                event_write.send(MenuEvent::Start);
-            }
-        }
-    }
-}
-
-#[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
-enum Screens {
-    Root,
-}
-
-impl ScreenTrait for Screens {
-    type Action = MenuActions;
-    type State = MenuStateSettings;
-    fn resolve(&self, state: &MenuStateSettings) -> Menu<Screens> {
-        match self {
-            Screens::Root => root_menu(state),
-        }
-    }
-}
-
-fn root_menu(_state: &MenuStateSettings) -> Menu<Screens> {
-    Menu::new(
-        "root",
-        vec![MenuItem::action("start", MenuActions::StartGame)],
-    )
-}
-
-fn setup(mut commands: Commands) {
-    commands.spawn((
-        Camera3dBundle {
-            camera: Camera {
-                order: 4,
-                ..Default::default()
-            },
-            ..Default::default()
-        },
-        OnMenuScreen,
-    ));
-
-    let sheet = Stylesheet::default().with_background(BackgroundColor(Color::BISQUE));
-
-    commands.insert_resource(MenuState::new(
-        MenuStateSettings::default(),
-        Screens::Root,
-        Some(sheet),
-    ))
-}
-
-fn event_reader(
-    mut commands: Commands,
-    mut event_reader: EventReader<MenuEvent>,
+fn ui(
+    mut contexts: EguiContexts,
     mut next_state: ResMut<NextState<GameState>>,
+    mut writer: EventWriter<AppExit>,
 ) {
-    for event in event_reader.read() {
-        match event {
-            MenuEvent::Start => {
+    let ctx = contexts.ctx_mut();
+
+    egui::CentralPanel::default().show(ctx, |ui| {
+        ui.with_layout(egui::Layout::top_down(egui::Align::Center), |ui| {
+            ui.style_mut().spacing.item_spacing = egui::vec2(0.0, 10.0);
+
+            ui.add(egui::Label::new(
+                egui::RichText::new("Jophus' Horror").size(64.0),
+            ));
+
+            ui.add_space(10.0);
+
+            let play = ui.add(egui::Button::new(egui::RichText::new("Play").size(32.0)));
+            let quit = ui.add(egui::Button::new(egui::RichText::new("Quit").size(24.0)));
+
+            if play.clicked() {
                 next_state.set(GameState::Game);
-                bevy_quickmenu::cleanup(&mut commands);
             }
-        }
-    }
+
+            if quit.clicked() {
+                writer.send(AppExit::Success);
+            }
+        })
+    });
 }

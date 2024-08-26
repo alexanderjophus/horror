@@ -16,6 +16,6 @@ bevy = { version = "0.14", features=["jpeg"] }
 bevy-inspector-egui = "0.25.0"
 rand = "0.8.5"
 bevy_rapier3d = "0.27.0"
-leafwing-input-manager = "0.15.0"
+leafwing-input-manager = { version = "0.15.0", features = ["egui"] }
 bevy_asset_loader = "0.21"
-bevy_quickmenu = { git = "https://github.com/terhechte/bevy_quickmenu" }
+bevy_egui = "0.29.0"

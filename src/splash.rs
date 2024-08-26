@@ -11,7 +11,7 @@ impl Plugin for SplashPlugin {
         // As this plugin is managing the splash screen, it will focus on the state `GameState::Splash`
         app.add_loading_state(
             LoadingState::new(GameState::Splash)
-                .continue_to_state(GameState::Game)
+                .continue_to_state(GameState::Menu)
                 .load_collection::<AudioAssets>()
                 .load_collection::<GltfAssets>()
                 .load_collection::<TextureAssets>(),

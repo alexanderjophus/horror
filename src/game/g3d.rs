@@ -39,13 +39,10 @@ impl Plugin for G3dPlugin {
     }
 }
 
-const PLAYER_INIT_LOCATION: Vec3 = Vec3::new(0.0, 10.0, 0.0);
+const PLAYER_INIT_LOCATION: Vec3 = Vec3::new(0.0, 0.0, 1000.0);
 
 #[derive(Component)]
 struct OnGame3DScreen;
-
-#[derive(Component)]
-struct KnockingWoodEmitter;
 
 #[derive(Component)]
 struct Intro;
@@ -196,6 +193,7 @@ fn setup(
                     .with_dual_axis(Action::Move, GamepadStick::LEFT)
                     .with_dual_axis(Action::Look, GamepadStick::RIGHT),
             },
+            Name::new("player"),
             OnGame3DScreen,
         ))
         .with_children(|parent| {
@@ -223,12 +221,7 @@ fn setup(
     });
 }
 
-fn spawn_house(
-    mut commands: Commands,
-    sounds: Res<AudioAssets>,
-    assets: Res<GltfAssets>,
-    assets_gltf: Res<Assets<Gltf>>,
-) {
+fn spawn_house(mut commands: Commands, assets: Res<GltfAssets>, assets_gltf: Res<Assets<Gltf>>) {
     if let Some(gltf) = assets_gltf.get(&assets.house.clone()) {
         commands.spawn((
             SceneBundle {
@@ -240,16 +233,6 @@ fn spawn_house(
                 shape: Some(ComputedColliderShape::TriMesh),
                 ..Default::default()
             },
-            OnGame3DScreen,
-        ));
-
-        commands.spawn((
-            SpatialBundle::from_transform(Transform::from_translation(Vec3::new(0.0, 2.0, 10.0))),
-            AudioBundle {
-                source: sounds.knocking_wood.clone(),
-                settings: PlaybackSettings::LOOP,
-            },
-            KnockingWoodEmitter,
             OnGame3DScreen,
         ));
 
