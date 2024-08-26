@@ -35,28 +35,14 @@ impl Plugin for G3dPlugin {
                     .and_then(intro_finished),
             ),
         )
-        // open door automatically if the player is close to the front door
-        .add_systems(
-            Update,
-            open_door.run_if(
-                in_state(GameState::Game)
-                    .and_then(in_state(GameplayState::Playing))
-                    .and_then(player_close_to_front_door),
-            ),
-        )
         .add_systems(OnExit(GameState::Game), (despawn_screen::<OnGame3DScreen>,));
     }
 }
 
-const PLAYER_INIT_LOCATION: Vec3 = Vec3::new(0.0, 0.8, -10.0);
+const PLAYER_INIT_LOCATION: Vec3 = Vec3::new(0.0, 10.0, 0.0);
 
 #[derive(Component)]
 struct OnGame3DScreen;
-
-#[derive(Resource, Default)]
-struct Animations {
-    open_door: Handle<AnimationClip>,
-}
 
 #[derive(Component)]
 struct KnockingWoodEmitter;
@@ -64,10 +50,20 @@ struct KnockingWoodEmitter;
 #[derive(Component)]
 struct Intro;
 
-#[derive(Actionlike, PartialEq, Eq, Clone, Copy, Hash, Debug, Reflect)]
+#[derive(PartialEq, Eq, Clone, Copy, Hash, Debug, Reflect)]
 enum Action {
     Move,
     Look,
+}
+
+impl Actionlike for Action {
+    // Record what kind of inputs make sense for each action.
+    fn input_control_kind(&self) -> InputControlKind {
+        match self {
+            Self::Move => InputControlKind::DualAxis,
+            Self::Look => InputControlKind::DualAxis,
+        }
+    }
 }
 
 fn setup(
@@ -103,7 +99,7 @@ fn setup(
     ));
 
     if asset_server.load_state(&textures.skybox) == LoadState::Loaded {
-        let image = images.get_mut(textures.skybox.clone()).unwrap();
+        let image = images.get_mut(&textures.skybox).unwrap();
         if image.texture_descriptor.array_layer_count() == 1 {
             image.reinterpret_stacked_2d_as_array(image.height() / image.width());
             image.texture_view_descriptor = Some(TextureViewDescriptor {
@@ -120,7 +116,7 @@ fn setup(
         PbrBundle {
             mesh: meshes.add(Mesh::from(Cuboid::new(100.0, 0.1, 100.0))),
             material: materials.add(StandardMaterial {
-                base_color: Color::rgb(0.5, 0.5, 0.5),
+                base_color: Color::srgb(0.5, 0.5, 0.5),
                 unlit: true,
                 ..default()
             }),
@@ -168,7 +164,7 @@ fn setup(
                 transform: Transform::from_translation(PLAYER_INIT_LOCATION)
                     .looking_at(Vec3::Y * PLAYER_INIT_LOCATION.y, Vec3::Y),
                 spot_light: SpotLight {
-                    color: Color::rgb(0.8, 0.8, 0.8),
+                    color: Color::srgb(0.8, 0.8, 0.8),
                     intensity: 200.0,
                     range: 100.0,
                     inner_angle: 0.0,
@@ -196,10 +192,9 @@ fn setup(
                 // Stores "which actions are currently pressed"
                 action_state: ActionState::default(),
                 // Describes how to convert from player inputs into those actions
-                input_map: InputMap::new([
-                    (Action::Move, DualAxis::left_stick()),
-                    (Action::Look, DualAxis::right_stick()),
-                ]),
+                input_map: InputMap::default()
+                    .with_dual_axis(Action::Move, GamepadStick::LEFT)
+                    .with_dual_axis(Action::Look, GamepadStick::RIGHT),
             },
             OnGame3DScreen,
         ))
@@ -215,7 +210,7 @@ fn setup(
                 },
                 // AtmosphereCamera::default(),
                 FogSettings {
-                    color: Color::rgba(0.05, 0.05, 0.05, 1.0),
+                    color: Color::srgba(0.05, 0.05, 0.05, 1.0),
                     falloff: FogFalloff::Exponential { density: 0.15 },
                     ..Default::default()
                 },
@@ -223,7 +218,7 @@ fn setup(
         });
 
     commands.insert_resource(AmbientLight {
-        color: Color::rgb_u8(210, 220, 240),
+        color: Color::srgb_u8(210, 220, 240),
         brightness: 1.0,
     });
 }
@@ -247,10 +242,6 @@ fn spawn_house(
             },
             OnGame3DScreen,
         ));
-
-        commands.insert_resource(Animations {
-            open_door: gltf.animations[0].clone(),
-        });
 
         commands.spawn((
             SpatialBundle::from_transform(Transform::from_translation(Vec3::new(0.0, 2.0, 10.0))),
@@ -283,11 +274,11 @@ fn movement(
     for (mut controller, transform, action_state) in query.iter_mut() {
         if action_state.pressed(&Action::Move) {
             let mut translation = Vec3::ZERO;
-            let axis_pair = action_state.clamped_axis_pair(&Action::Move).unwrap();
+            let axis_pair = action_state.clamped_axis_pair(&Action::Move);
             let forward = transform.left();
             let left = transform.forward();
-            translation += forward * -axis_pair.x() * time.delta_seconds() * 3.0;
-            translation += left * axis_pair.y() * time.delta_seconds() * 3.0;
+            translation += forward * -axis_pair.x * time.delta_seconds() * 3.0;
+            translation += left * axis_pair.y * time.delta_seconds() * 3.0;
 
             controller.translation = Some(translation);
         }
@@ -300,12 +291,12 @@ fn camera_rotation(
 ) {
     for (mut transform, action_state) in query.iter_mut() {
         if action_state.pressed(&Action::Look) {
-            let axis_pair = action_state.clamped_axis_pair(&Action::Look).unwrap();
+            let axis_pair = action_state.clamped_axis_pair(&Action::Look);
             let (mut yaw, mut pitch, _) = transform.rotation.to_euler(EulerRot::YXZ);
 
-            pitch += axis_pair.y() * time.delta_seconds() * 2.0;
+            pitch += axis_pair.y * time.delta_seconds() * 2.0;
             pitch = pitch.clamp(-PI / 8.0, PI / 8.0);
-            yaw -= axis_pair.x() * time.delta_seconds() * 2.0;
+            yaw -= axis_pair.x * time.delta_seconds() * 2.0;
             transform.rotation =
                 Quat::from_axis_angle(Vec3::Y, yaw) * Quat::from_axis_angle(Vec3::X, pitch);
         }
@@ -322,42 +313,6 @@ fn light_flicker(time: Res<Time>, mut query: Query<(&mut Player, &mut SpotLight)
     if player.flashlight_flicker.finished() {
         light.intensity = 200.0;
     }
-}
-
-fn open_door(
-    mut commands: Commands,
-    animations: Res<Animations>,
-    sounds: Res<AudioAssets>,
-    mut anim_player: Query<&mut AnimationPlayer, Added<AnimationPlayer>>,
-) {
-    for mut player in anim_player.iter_mut() {
-        // not sure this sound even plays
-        commands.spawn((
-            SpatialBundle::from_transform(Transform::from_translation(Vec3::new(2.7, 0.0, 0.0))),
-            AudioBundle {
-                source: sounds.door_open.clone(),
-                settings: PlaybackSettings::ONCE,
-            },
-            OnGame3DScreen,
-        ));
-        commands.spawn((
-            SpatialBundle::from_transform(Transform::from_translation(PLAYER_INIT_LOCATION)),
-            SpatialListener::new(4.0),
-        ));
-        player.play(animations.open_door.clone());
-    }
-}
-
-fn player_close_to_front_door(player_query: Query<&Transform, With<Player>>) -> bool {
-    let player_transform = player_query.single();
-    if player_transform
-        .translation
-        .distance_squared(Vec3::new(2.7, 0.0, 0.0))
-        < 50.0
-    {
-        return true;
-    }
-    false
 }
 
 fn intro_finished(query: Query<&Intro>) -> bool {

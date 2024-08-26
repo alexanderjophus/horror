@@ -50,9 +50,7 @@ impl Plugin for VHSPlugin {
         .add_systems(Update, update_blur.run_if(in_state(GameplayState::Playing)));
 
         // We need to get the render app from the main app
-        let Ok(render_app) = app.get_sub_app_mut(RenderApp) else {
-            return;
-        };
+        let render_app = app.get_sub_app_mut(RenderApp).unwrap();
 
         render_app
             // Bevy's renderer uses a render graph which is a collection of nodes in a directed acyclic graph.
@@ -85,9 +83,7 @@ impl Plugin for VHSPlugin {
 
     fn finish(&self, app: &mut App) {
         // We need to get the render app from the main app
-        let Ok(render_app) = app.get_sub_app_mut(RenderApp) else {
-            return;
-        };
+        let render_app = app.get_sub_app_mut(RenderApp).unwrap();
 
         render_app
             // Initialize the pipeline

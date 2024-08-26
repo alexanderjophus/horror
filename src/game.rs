@@ -2,7 +2,7 @@
 mod debug3d;
 mod g2d;
 mod g3d;
-mod pause;
+// mod pause;
 #[cfg(feature = "shaders")]
 mod vhs;
 
@@ -16,7 +16,7 @@ use leafwing_input_manager::prelude::*;
 enum GameplayState {
     #[default]
     Playing,
-    Paused,
+    // Paused,
 }
 
 #[derive(Actionlike, PartialEq, Eq, Clone, Copy, Hash, Debug, Reflect)]
@@ -26,8 +26,6 @@ enum Action {
 
 #[derive(AssetCollection, Resource)]
 pub struct AudioAssets {
-    #[asset(path = "audio/door_open.ogg")]
-    door_open: Handle<AudioSource>,
     #[asset(path = "audio/knocking_wood.ogg")]
     knocking_wood: Handle<AudioSource>,
     #[asset(path = "audio/haunting_piano.ogg")]
@@ -36,7 +34,7 @@ pub struct AudioAssets {
 
 #[derive(AssetCollection, Resource)]
 pub struct GltfAssets {
-    #[asset(path = "models/house.glb")]
+    #[asset(path = "models/world.glb")]
     house: Handle<Gltf>,
 }
 
@@ -61,13 +59,13 @@ impl Plugin for GamePlugin {
             g3d::G3dPlugin,
             #[cfg(feature = "shaders")]
             vhs::VHSPlugin,
-            pause::PausePlugin,
+            // pause::PausePlugin,
             #[cfg(feature = "debug")]
             debug3d::Debug3DPlugin,
         ))
         .init_state::<GameplayState>()
-        .add_systems(OnEnter(GameState::Game), setup)
-        .add_systems(Update, toggle_pause.run_if(in_state(GameState::Game)));
+        .add_systems(OnEnter(GameState::Game), setup);
+        // .add_systems(Update, toggle_pause.run_if(in_state(GameState::Game)));
     }
 }
 
@@ -80,16 +78,16 @@ fn setup(mut commands: Commands) {
     });
 }
 
-fn toggle_pause(
-    state: Res<State<GameplayState>>,
-    mut next_state: ResMut<NextState<GameplayState>>,
-    query: Query<&ActionState<Action>>,
-) {
-    let action_state = query.single();
-    if action_state.just_pressed(&Action::Pause) {
-        match state.get() {
-            GameplayState::Playing => next_state.set(GameplayState::Paused),
-            GameplayState::Paused => next_state.set(GameplayState::Playing),
-        }
-    }
-}
+// fn toggle_pause(
+//     state: Res<State<GameplayState>>,
+//     mut next_state: ResMut<NextState<GameplayState>>,
+//     query: Query<&ActionState<Action>>,
+// ) {
+//     let action_state = query.single();
+//     if action_state.just_pressed(&Action::Pause) {
+//         match state.get() {
+//             GameplayState::Playing => next_state.set(GameplayState::Paused),
+//             GameplayState::Paused => next_state.set(GameplayState::Playing),
+//         }
+//     }
+// }

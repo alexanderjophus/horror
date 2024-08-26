@@ -1,7 +1,7 @@
 #[cfg(feature = "debug")]
 mod debug;
 mod game;
-mod menu;
+// mod menu;
 mod splash;
 
 use bevy::{asset::AssetMetaCheck, prelude::*};
@@ -9,24 +9,30 @@ use bevy::{asset::AssetMetaCheck, prelude::*};
 pub const GAME_NAME: &str = "Jophus' Horror";
 
 // Enum that will be used as a global state for the game
-#[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States)]
+#[derive(Clone, Eq, PartialEq, Debug, Hash, Default, States)]
 enum GameState {
     #[default]
     Splash,
-    Menu,
+    // Menu,
     Game,
 }
 
 fn main() {
     App::new()
-        .insert_resource(AssetMetaCheck::Never)
-        .add_plugins(DefaultPlugins.set(ImagePlugin::default_nearest()))
+        .add_plugins(
+            DefaultPlugins
+                .set(ImagePlugin::default_nearest())
+                .set(AssetPlugin {
+                    meta_check: AssetMetaCheck::Never,
+                    ..default()
+                }),
+        )
         // Declare the game state
         .init_state::<GameState>()
         // Adds the plugins for each state
         .add_plugins((
             splash::SplashPlugin,
-            menu::MenuPlugin,
+            // menu::MenuPlugin,
             game::GamePlugin,
             #[cfg(feature = "debug")]
             debug::DebugPlugin,
