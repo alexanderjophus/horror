@@ -1,118 +1,57 @@
-use crate::GAME_NAME;
+use crate::{GameState, GAME_NAME};
 
 use super::{despawn_screen, GameplayState};
 use bevy::prelude::*;
-use bevy_quickmenu::{
-    style::Stylesheet, ActionTrait, Menu, MenuItem, MenuState, QuickMenuPlugin, ScreenTrait,
-};
+use bevy_egui::{egui, EguiContexts, EguiPlugin};
 
 pub struct PausePlugin;
 
 impl Plugin for PausePlugin {
     fn build(&self, app: &mut App) {
-        app.add_event::<MenuEvent>()
-            .add_plugins(QuickMenuPlugin::<Screens>::new())
-            .add_systems(OnEnter(GameplayState::Paused), setup)
-            .add_systems(
-                OnExit(GameplayState::Paused),
-                (despawn_screen::<OnPauseScreen>, close_menu),
-            );
+        if !app.is_plugin_added::<EguiPlugin>() {
+            app.add_plugins(EguiPlugin);
+        }
+
+        app.add_systems(
+            Update,
+            ui.run_if(in_state(GameState::Game).and_then(in_state(GameplayState::Paused))),
+        )
+        .add_systems(
+            OnExit(GameplayState::Paused),
+            despawn_screen::<OnPauseScreen>,
+        );
     }
 }
 
 #[derive(Component)]
 struct OnPauseScreen;
 
-#[derive(Debug, Event)]
-enum MenuEvent {}
+fn ui(
+    mut contexts: EguiContexts,
+    mut next_game_state: ResMut<NextState<GameState>>,
+    mut next_gameplay_state: ResMut<NextState<GameplayState>>,
+) {
+    let ctx = contexts.ctx_mut();
 
-#[derive(Debug, Clone, Default)]
-struct PauseState {
-    sound_on: bool,
-}
+    egui::CentralPanel::default().show(ctx, |ui| {
+        ui.with_layout(egui::Layout::top_down(egui::Align::Center), |ui| {
+            ui.style_mut().spacing.item_spacing = egui::vec2(0.0, 10.0);
 
-#[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
-enum MenuActions {
-    ToggleSound,
-}
+            ui.add(egui::Label::new(egui::RichText::new(GAME_NAME).size(64.0)));
 
-impl ActionTrait for MenuActions {
-    type State = PauseState;
-    type Event = MenuEvent;
-    fn handle(&self, state: &mut PauseState, _: &mut EventWriter<MenuEvent>) {
-        match self {
-            MenuActions::ToggleSound => {
-                state.sound_on = !state.sound_on;
+            ui.add_space(10.0);
+
+            let resume = ui.add(egui::Button::new(egui::RichText::new("Resume").size(32.0)));
+            let main_menu = ui.add(egui::Button::new(
+                egui::RichText::new("Main Menu").size(24.0),
+            ));
+
+            if resume.clicked() {
+                next_gameplay_state.set(GameplayState::Playing);
             }
-        }
-    }
-}
-
-fn setup(mut commands: Commands) {
-    commands.spawn((
-        Camera3dBundle {
-            camera: Camera {
-                order: 4,
-                ..Default::default()
-            },
-            ..Default::default()
-        },
-        OnPauseScreen,
-    ));
-
-    let sheet = Stylesheet::default();
-
-    commands.insert_resource(MenuState::new(
-        PauseState::default(),
-        Screens::Root,
-        Some(sheet),
-    ))
-}
-
-#[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
-enum Screens {
-    Root,
-    Sound,
-}
-
-impl ScreenTrait for Screens {
-    type Action = MenuActions;
-    type State = PauseState;
-    fn resolve(&self, state: &PauseState) -> Menu<Screens> {
-        match self {
-            Screens::Root => root_menu(state),
-            Screens::Sound => sound_menu(state),
-        }
-    }
-}
-
-fn root_menu(_state: &PauseState) -> Menu<Screens> {
-    Menu::new(
-        "root",
-        vec![
-            MenuItem::headline(GAME_NAME),
-            MenuItem::screen("Sound (TODO)", Screens::Sound),
-        ],
-    )
-}
-
-fn sound_menu(state: &PauseState) -> Menu<Screens> {
-    Menu::new(
-        "sound",
-        vec![
-            MenuItem::headline("Sound"),
-            MenuItem::action(
-                if state.sound_on {
-                    "Sound: On"
-                } else {
-                    "Sound: Off"
-                },
-                MenuActions::ToggleSound,
-            ),
-        ],
-    )
-}
-
-fn close_menu(mut commands: Commands) {
-    bevy_quickmenu::cleanup(&mut commands);
+            if main_menu.clicked() {
+                next_game_state.set(GameState::Menu);
+            }
+        });
+    });
 }

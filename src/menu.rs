@@ -1,3 +1,5 @@
+use crate::GAME_NAME;
+
 use super::{despawn_screen, GameState};
 
 use bevy::prelude::*;
@@ -27,9 +29,7 @@ fn ui(
         ui.with_layout(egui::Layout::top_down(egui::Align::Center), |ui| {
             ui.style_mut().spacing.item_spacing = egui::vec2(0.0, 10.0);
 
-            ui.add(egui::Label::new(
-                egui::RichText::new("Jophus' Horror").size(64.0),
-            ));
+            ui.add(egui::Label::new(egui::RichText::new(GAME_NAME).size(64.0)));
 
             ui.add_space(10.0);
 

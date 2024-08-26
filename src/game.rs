@@ -2,7 +2,7 @@
 mod debug3d;
 mod g2d;
 mod g3d;
-// mod pause;
+mod pause;
 #[cfg(feature = "shaders")]
 mod vhs;
 
@@ -16,7 +16,7 @@ use leafwing_input_manager::prelude::*;
 enum GameplayState {
     #[default]
     Playing,
-    // Paused,
+    Paused,
 }
 
 #[derive(Actionlike, PartialEq, Eq, Clone, Copy, Hash, Debug, Reflect)]
@@ -57,35 +57,35 @@ impl Plugin for GamePlugin {
             g3d::G3dPlugin,
             #[cfg(feature = "shaders")]
             vhs::VHSPlugin,
-            // pause::PausePlugin,
+            pause::PausePlugin,
             #[cfg(feature = "debug")]
             debug3d::Debug3DPlugin,
         ))
         .init_state::<GameplayState>()
-        .add_systems(OnEnter(GameState::Game), setup);
-        // .add_systems(Update, toggle_pause.run_if(in_state(GameState::Game)));
+        .add_systems(OnEnter(GameState::Game), setup)
+        .add_systems(Update, toggle_pause.run_if(in_state(GameState::Game)));
     }
 }
 
 fn setup(mut commands: Commands) {
+    let input_map = InputMap::new([(Action::Pause, KeyCode::Escape)]);
+
     commands.spawn(InputManagerBundle::<Action> {
-        // Stores "which actions are currently pressed"
         action_state: ActionState::default(),
-        // Describes how to convert from player inputs into those actions
-        input_map: InputMap::new([(Action::Pause, GamepadButtonType::Start)]),
+        input_map,
     });
 }
 
-// fn toggle_pause(
-//     state: Res<State<GameplayState>>,
-//     mut next_state: ResMut<NextState<GameplayState>>,
-//     query: Query<&ActionState<Action>>,
-// ) {
-//     let action_state = query.single();
-//     if action_state.just_pressed(&Action::Pause) {
-//         match state.get() {
-//             GameplayState::Playing => next_state.set(GameplayState::Paused),
-//             GameplayState::Paused => next_state.set(GameplayState::Playing),
-//         }
-//     }
-// }
+fn toggle_pause(
+    state: Res<State<GameplayState>>,
+    mut next_state: ResMut<NextState<GameplayState>>,
+    query: Query<&ActionState<Action>>,
+) {
+    let action_state = query.single();
+    if action_state.just_pressed(&Action::Pause) {
+        match state.get() {
+            GameplayState::Playing => next_state.set(GameplayState::Paused),
+            GameplayState::Paused => next_state.set(GameplayState::Playing),
+        }
+    }
+}
