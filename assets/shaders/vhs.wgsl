@@ -1,13 +1,11 @@
+#import bevy_render::view::View
+#import bevy_pbr::forward_io::VertexOutput
+#import bevy_pbr::mesh_view_bindings::globals
 #import bevy_pbr::utils
-#import bevy_core_pipeline::fullscreen_vertex_shader::FullscreenVertexOutput
 
-@group(0) @binding(0) var screen_texture: texture_2d<f32>;
-@group(0) @binding(1) var texture_sampler: sampler;
-struct VHSPostProcessSettings {
-    time: f32,
-    _padding_a: vec3<f32>,
-}
-@group(0) @binding(2) var<uniform> settings: VHSPostProcessSettings;
+@group(0) @binding(0) var<uniform> view: View;
+@group(2) @binding(101) var texture: texture_2d<f32>;
+@group(2) @binding(102) var texture_sampler: sampler;
 
 #ifndef RANDOM_SCALE
 #ifdef RANDOM_HIGHER_RANGE
@@ -38,36 +36,26 @@ fn random_vec2(st: vec2<f32>) -> f32 {
 #endif
 }
 
-fn warp(uv: vec2<f32>) -> vec2<f32> {
-	let delta = uv - 0.5;
-	let delta2 = dot(delta.xy, delta.xy);
-	let delta4 = delta2 * delta2;
-	let delta_offset = delta4 * -0.2;
-	
-	return uv + delta * delta_offset;
-}
-
 fn modulo(x: f32, y: f32) -> f32 {
     return x - y * floor(x / y);
 }
 
-fn distort(uv: vec2<f32>, time: f32) -> vec3<f32> {
-    var color = textureSample(screen_texture, texture_sampler, uv).xyz;
-    let st = warp(uv);
-
-    let d2 = 1.0;
-    let d3 = random_vec2(vec2(st * 5. + time)) * 1. - random(step((0.5 * modulo(-time/1.5 + st.y, 2.0)), .95));
-    color += mix(d2, d3, step(0.005, pow( 1.0*st.x*st.y*(1.0-st.y)*(1.0-st.x), 1.0 )))/5.;
-    
-    return color;
+fn rolling_distort(uv: vec2<f32>, time: f32) -> f32 {
+    return random_vec2(vec2(uv * 5. + time)) * 1. - random(step((0.5 * modulo(-time/1.5 + uv.y, 2.0)), .95));
 }
 
 @fragment
-fn fragment(in: FullscreenVertexOutput) -> @location(0) vec4<f32> {
-    let vhs = distort(in.uv, settings.time);
+fn fragment(in: VertexOutput) -> @location(0) vec4<f32> {
+    let uv = in.uv;
+    var colour = textureSample(texture, texture_sampler, uv).xyz;
+    let vhs = rolling_distort(uv, -globals.time /2);
+    let edges = step(0.005, pow( 1.0*uv.x*uv.y*(1.0-uv.y)*(1.0-uv.x), 1.0 ));
+    colour += mix(1.0, vhs, 1.0)/3.;
+
+    colour = mix(vec3<f32>(0.0, 0.0, 0.0), colour, edges);
 
     return vec4<f32>(
-        vhs,
+        colour,
         1.0
     );
 }
