@@ -9,8 +9,10 @@ pub struct MenuPlugin;
 
 impl Plugin for MenuPlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugins(EguiPlugin)
-            .add_systems(Update, ui.run_if(in_state(GameState::Menu)))
+        if !app.is_plugin_added::<EguiPlugin>() {
+            app.add_plugins(EguiPlugin);
+        }
+        app.add_systems(Update, ui.run_if(in_state(GameState::Menu)))
             .add_systems(OnExit(GameState::Menu), despawn_screen::<OnMenuScreen>);
     }
 }

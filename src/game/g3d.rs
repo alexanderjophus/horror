@@ -273,16 +273,14 @@ fn camera_rotation(
     mut query: Query<(&mut Transform, &ActionState<Action>), With<Player>>,
 ) {
     for (mut transform, action_state) in query.iter_mut() {
-        if action_state.pressed(&Action::Look) {
-            let axis_pair = action_state.clamped_axis_pair(&Action::Look);
-            let (mut yaw, mut pitch, _) = transform.rotation.to_euler(EulerRot::YXZ);
+        let axis_pair = action_state.clamped_axis_pair(&Action::Look);
+        let (mut yaw, mut pitch, _) = transform.rotation.to_euler(EulerRot::YXZ);
 
-            pitch += axis_pair.y * time.delta_seconds() * 2.0;
-            pitch = pitch.clamp(-PI / 8.0, PI / 8.0);
-            yaw -= axis_pair.x * time.delta_seconds() * 2.0;
-            transform.rotation =
-                Quat::from_axis_angle(Vec3::Y, yaw) * Quat::from_axis_angle(Vec3::X, pitch);
-        }
+        pitch += axis_pair.y * time.delta_seconds() * 2.0;
+        pitch = pitch.clamp(-PI / 8.0, PI / 8.0);
+        yaw -= axis_pair.x * time.delta_seconds() * 2.0;
+        transform.rotation =
+            Quat::from_axis_angle(Vec3::Y, yaw) * Quat::from_axis_angle(Vec3::X, pitch);
     }
 }
 

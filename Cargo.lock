@@ -340,7 +340,7 @@ dependencies = [
  "bevy_core",
  "bevy_core_pipeline",
  "bevy_ecs",
- "bevy_egui 0.28.0",
+ "bevy_egui",
  "bevy_hierarchy",
  "bevy_log",
  "bevy_math",
@@ -651,29 +651,6 @@ dependencies = [
  "wasm-bindgen-futures",
  "web-sys",
  "webbrowser",
- "winit",
-]
-
-[[package]]
-name = "bevy_egui"
-version = "0.29.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "128438a8163e49528207aabf20d3ff0890fd6be0f0054626915995efac87922b"
-dependencies = [
- "arboard",
- "bevy",
- "bytemuck",
- "console_log",
- "crossbeam-channel",
- "egui",
- "js-sys",
- "log",
- "thread_local",
- "wasm-bindgen",
- "wasm-bindgen-futures",
- "web-sys",
- "webbrowser",
- "wgpu-types",
  "winit",
 ]
 
@@ -2427,7 +2404,7 @@ dependencies = [
  "bevy",
  "bevy-inspector-egui",
  "bevy_asset_loader",
- "bevy_egui 0.29.0",
+ "bevy_egui",
  "bevy_rapier3d",
  "leafwing-input-manager",
  "rand",
@@ -2640,7 +2617,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "10cfa701709bb37011dd09965a76ff981f6284ed5b8ac0e5089dcd311efeff49"
 dependencies = [
  "bevy",
- "bevy_egui 0.28.0",
+ "bevy_egui",
  "derive_more",
  "dyn-clone",
  "dyn-eq",
